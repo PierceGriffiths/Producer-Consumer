@@ -10,6 +10,7 @@ extern Queue *buffer;
 extern pthread_mutex_t mutex;
 extern pthread_cond_t canProduce, canConsume;
 extern unsigned num_produced, target;
+extern short useProducerLog;
 
 void* producer(void *arg){
     struct timespec ts;
@@ -29,8 +30,10 @@ void* producer(void *arg){
 	}
 	num_produced++;
 	i = enqueue(buffer, num);//Place num at end of the buffer and get its index
-	clock_gettime(CLOCK_REALTIME, &ts);
-	fprintf(producerLog, "%ld Producer %lu %u %u\n", ts.tv_nsec, id, i, num);
+	if(useProducerLog){
+	    clock_gettime(CLOCK_REALTIME, &ts);
+	    fprintf(producerLog, "%ld Producer %lu %u %u\n", ts.tv_nsec, id, i, num);
+	}
 	printf("Producer thread %lu produced %u and stored it at index %u\n",
 		id, num, i);
 	

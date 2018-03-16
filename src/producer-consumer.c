@@ -12,12 +12,13 @@ Queue *buffer;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t canProduce = PTHREAD_COND_INITIALIZER, canConsume = PTHREAD_COND_INITIALIZER;
 unsigned num_consumed = 0, num_produced = 0, target;
+short useProducerLog = 1, useConsumerLog = 1;
 
 int main(int argc, char *argv[]){
     unsigned i, numProducers, numConsumers;
     unsigned long argCheck;
     pthread_t *producers, *consumers;
-    char *lineBuffer;
+    char *lineBuffer = NULL;
     size_t lineBufferSize = 50;
     
     if(argc != 5){//check for correct number of arguments
@@ -33,11 +34,25 @@ int main(int argc, char *argv[]){
 	    exit(1);
 	}
     }
+    
     numProducers = (unsigned)strtoul(argv[1], NULL, 10);
     numConsumers = (unsigned)strtoul(argv[2], NULL, 10);
+    
     target = (unsigned)strtoul(argv[4], NULL, 10);
+    
     producerLog = fopen("producer-event.log", "w+");
+    if(producerLog == NULL){
+	fprintf(stderr, "Unable to open producer-event.log for writing. Proceeding without producer event logging.\n");
+	fclose(producerLog);
+	useProducerLog = 0;
+    }
+    
     consumerLog = fopen("consumer-event.log", "w+");
+    if(consumerLog == NULL){
+	fprintf(stderr, "Unable to open consumer-event.log for writing. Proceeding without consumer event logging.\n");
+	fclose(consumerLog);
+	useConsumerLog = 0;
+    }
     
     buffer = createQueue(strtoul(argv[3], NULL, 10));//see queue.c for the queue implementation
     if(buffer == NULL){
@@ -79,25 +94,52 @@ int main(int argc, char *argv[]){
     free(consumers);
     deleteQueue(buffer);
     printf("All threads finished.\n");
-    printf("Produced: %u\nConsumed: %u\n", num_produced, num_consumed);
+    printf("Produced: %u\nConsumed: %u\n\n", num_produced, num_consumed);
     
-    lineBuffer = calloc(lineBufferSize, sizeof(*lineBuffer));
-    printf("Reading from producer-event.log:\n");
-    producerLog = fopen("producer-event.log", "r");
-    while(getline(&lineBuffer, &lineBufferSize, producerLog) != -1){
-	printf("%s", lineBuffer);
-    }
-    fclose(producerLog);
-    
-    printf("\n\nEnd of producer-event.log. Reading from consumer-event.log:\n");
-    consumerLog = fopen("consumer-event.log", "r");
-    while(getline(&lineBuffer, &lineBufferSize, consumerLog) != -1){
-	printf("%s", lineBuffer);
+    if(useProducerLog || useConsumerLog){
+	lineBuffer = calloc(lineBufferSize, sizeof(*lineBuffer));
     }
     
-    free(lineBuffer);
-    fclose(consumerLog);
+    if(useProducerLog){
+	producerLog = fopen("producer-event.log", "r");
+	if(producerLog == NULL || lineBuffer == NULL){
+	    fprintf(stderr, "Unable to read from producer-event.log.\n");
+	}
+	else{
+	    printf("Reading from producer-event.log:\n");
+	    while(getline(&lineBuffer, &lineBufferSize, producerLog) != -1){
+		printf("%s", lineBuffer);
+	    }
+	    printf("End of producer-event.log.\n\n");
+	}
+	fclose(producerLog);
+    }
+    else{
+	fprintf(stderr, "\nproducer-event.log was not written to, so it will not be read.\n");
+    }
+
+    if(useConsumerLog){
+	consumerLog = fopen("consumer-event.log", "r");
+	if(consumerLog == NULL || lineBuffer == NULL){
+	    fprintf(stderr, "Unable to read from consumer-event.log.\n");
+	}
+	else{
+	    printf("Reading from consumer-event.log:\n");
+	    while(getline(&lineBuffer, &lineBufferSize, consumerLog) != -1){
+		printf("%s", lineBuffer);
+	    }
+	    printf("End of consumer-event.log.\n\n");
+	}
+	fclose(consumerLog);
+    }
+    else{
+	fprintf(stderr, "\nconsumer-event.log was not written to, so it will not be read.\n");
+    }
     
-    printf("\n\nDone.\n");
+    if(lineBuffer != NULL){
+	free(lineBuffer);
+    }
+    
+    printf("Done.\n");
     return 0;
 }
