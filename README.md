@@ -8,6 +8,9 @@ While in the root directory for this project (it contains this readme), enter `m
 ### How to run:
 `./producer-consumer <# producer threads> <# consumer threads> <buffer size> <# items to be produced>`
 
+### Understanding the log files (consumer-event.log and producer-event.log):
+`<Timestamp (in nanoseconds)> <Thread type ("Producer" or "Consumer"> <Thread ID> <Buffer entry index> <Item>`
+
 ### Notes on the directories:
 This directory (./) serves as the root directory for the project, and contains the README, the makefile, the executable version of the project (once compiled), and the logfiles
 
