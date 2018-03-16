@@ -1,6 +1,9 @@
 Producer-Consumer
 ======
 
+## Summary:
+This program creates "w" producer threads, "x" consumer threads, a shared buffer with a capacity of "y" items, and will produce exactly "z" items, where w, x, y, and z are unsigned integers whose values are given as command line arguments. The items produced are pseudorandom unsigned integers. A single mutex is used to restrict access to the buffer to exactly one thread at a time. The buffer takes the form of a queue, which ensures that items are consumed in the same order in which they were produced. Each time an item is produced or consumed, the event shown on stdout as well as logged to the appropriate log file.
+
 ### How to compile:
 While in the root directory for this project (it contains this readme), enter `make` into the shell, and the makefile will take care of the rest
 
