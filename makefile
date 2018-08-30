@@ -14,9 +14,9 @@ _OBJ = queue.o producer.o consumer.o producer-consumer.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
-	if [ ! -d "$(ODIR)" ]; then	\
+	@if [ ! -d "$(ODIR)" ]; then	\
 	    mkdir $(ODIR);		\
-	fi;				\
+	fi;				
 	$(CC) -c -o $@ $< $(CFLAGS)
 
 

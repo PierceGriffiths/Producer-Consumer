@@ -33,12 +33,26 @@ int main(int argc, char *argv[]){
 	    printf("Usage: %s <# producer threads> #consumer threads> <buffer size> <# items to produce>\n", argv[0]);
 	    exit(1);
 	}
+	switch(i){
+	    case 1:
+		numProducers = (unsigned)argCheck;
+		break;
+	    case 2:
+		numConsumers = (unsigned)argCheck;
+		break;
+	    case 3:
+		buffer = createQueue((unsigned)argCheck);
+		if(buffer == NULL){
+		    fprintf(stderr, "Failed to allocate memory for buffer.\n");
+		    exit(1);
+		}
+		break;
+	    case 4:
+		target = (unsigned)argCheck;
+		break;
+	}
     }
     
-    numProducers = (unsigned)strtoul(argv[1], NULL, 10);
-    numConsumers = (unsigned)strtoul(argv[2], NULL, 10);
-    
-    target = (unsigned)strtoul(argv[4], NULL, 10);
     
     producerLog = fopen("producer-event.log", "w+");
     if(producerLog == NULL){
@@ -52,12 +66,6 @@ int main(int argc, char *argv[]){
 	fprintf(stderr, "Unable to open consumer-event.log for writing. Proceeding without consumer event logging.\n");
 	fclose(consumerLog);
 	useConsumerLog = 0;
-    }
-    
-    buffer = createQueue(strtoul(argv[3], NULL, 10));//see queue.c for the queue implementation
-    if(buffer == NULL){
-	fprintf(stderr, "Failed to allocate memory for buffer.\n");
-	exit(1);
     }
     
     producers = calloc(numProducers, sizeof(*producers));//See producer.c for the implementation of the producer function
