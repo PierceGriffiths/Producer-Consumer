@@ -68,7 +68,8 @@ int main(int argc, char *argv[]){
 	useConsumerLog = 0;
     }
     
-    producers = calloc(numProducers, sizeof(*producers));//See producer.c for the implementation of the producer function
+    //Using calloc here wastes CPU cycles because the memory is zeroed before the pointer is returned
+    producers = malloc(numProducers * sizeof(*producers));//See producer.c for the implementation of the producer function
     if(producers == NULL){//Check whether memory was allocated
 	fprintf(stderr, "Failed to allocate memory for producer threads.\n");
 	exit(1);
@@ -79,7 +80,7 @@ int main(int argc, char *argv[]){
 	}
     }
     
-    consumers = calloc(numConsumers, sizeof(*consumers));//See consumer.c for the implementation of the consumer function
+    consumers = malloc(numConsumers * sizeof(*consumers));//See consumer.c for the implementation of the consumer function
     if(consumers == NULL){
 	fprintf(stderr, "Failed to allocate memory for consumer threads.\n");
 	exit(1);
@@ -105,7 +106,7 @@ int main(int argc, char *argv[]){
     printf("Produced: %u\nConsumed: %u\n\n", num_produced, num_consumed);
     
     if(useProducerLog || useConsumerLog){
-	lineBuffer = calloc(lineBufferSize, sizeof(*lineBuffer));
+	lineBuffer = calloc(lineBufferSize, sizeof(*lineBuffer));//Use calloc so that memory for lineBuffer is zero initialized
     }
     
     if(useProducerLog){
