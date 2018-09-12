@@ -7,7 +7,7 @@ IDIR=$(SDIR)/include
 ODIR=$(SDIR)/obj
 LIBS=-lpthread
 
-_DEPS = queue.h producer.h consumer.h
+_DEPS = queue.h producer.h consumer.h arg_structs.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
 _OBJ = queue.o producer.o consumer.o producer-consumer.o
