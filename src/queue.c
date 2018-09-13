@@ -15,21 +15,9 @@ Queue* createQueue(unsigned capacity){
 }
 
 void* deleteQueue(Queue *q){
-    q->front = 0;
-    q->back = 0;
-    q->size = 0;
-    q->capacity = 0;
     free(q->array);
     q->array = NULL;
     return NULL;
-}
-
-int isEmpty(Queue *q){//returns 1 if the array is empty, and 0 otherwise
-    return(q->size == 0);
-}
-
-int isFull(Queue *q){//Returns 1 if the array is full, and 0 otherwise
-    return (q->size == q->capacity);
 }
 
 unsigned enqueue(Queue *q, unsigned num){

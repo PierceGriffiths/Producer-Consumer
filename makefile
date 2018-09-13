@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 CC=gcc
-CFLAGS= -I$(IDIR) -Wall
+CFLAGS= -march='native' -O3 -I$(IDIR) -Wall
 
 SDIR=./src
 IDIR=$(SDIR)/include
@@ -13,16 +13,15 @@ DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 _OBJ = queue.o producer.o consumer.o producer-consumer.o 
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
-
 $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 	@if [ ! -d "$(ODIR)" ]; then	\
 	    mkdir $(ODIR);		\
 	fi;				
-	$(CC) -c -o $@ $< $(CFLAGS)
+	$(CC) $(CFLAGS) -c -o $@ $<
 
 
 producer-consumer: $(OBJ)
-	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 .PHONY: clean
 

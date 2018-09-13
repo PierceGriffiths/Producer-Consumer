@@ -8,9 +8,13 @@ Queue* createQueue(unsigned capacity);
 
 void* deleteQueue(Queue *q);
 
-int isEmpty(Queue *q);
+inline int isEmpty(Queue *q){
+    return (q->size == 0);
+}
 
-int isFull(Queue *q);
+inline int isFull(Queue *q){
+    return (q->size == q->capacity);
+}
 
 unsigned enqueue(Queue *q, unsigned num);
 
