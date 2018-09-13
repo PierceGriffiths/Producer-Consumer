@@ -14,7 +14,8 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t canProduce = PTHREAD_COND_INITIALIZER, canConsume = PTHREAD_COND_INITIALIZER;
 
 int main(int argc, char *argv[]){
-    unsigned i, numProducers = 0, numConsumers = 0, useProducerLog = 1, useConsumerLog = 1;
+    register unsigned i, numProducers = 0, numConsumers = 0;//register keyword tells compiler that it should try to optimize access to these variables
+    unsigned useProducerLog = 1, useConsumerLog = 1;
     unsigned long argCheck;
     pthread_t *producers, *consumers;
     char *lineBuffer = NULL;
@@ -25,7 +26,7 @@ int main(int argc, char *argv[]){
     consumer_args *cArgs = malloc(sizeof(*cArgs));
     if(pArgs == NULL || cArgs == NULL){
 	fprintf(stderr, "Failed to allocate memory for thread arguments.\n");
-	exit(1);
+	return -1;
     }
     pArgs->num_produced = 0;
     pArgs->useProducerLogPtr = &useProducerLog;//useProducerLog is a local variable because main() needs to check its value several times after the producer threads finish
@@ -33,16 +34,16 @@ int main(int argc, char *argv[]){
     cArgs->useConsumerLogPtr = &useConsumerLog;//useConsumerLog is a local variable because main() needs to check its value several times after the consumer threads finish
     
     if(argc != 5){//check for correct number of arguments
-	printf("Usage: %s <# producer threads> #consumer threads> <buffer size> <# items to produce>\n", argv[0]);
-	exit(1);
+	printf("Usage: %s <# producer threads> <#consumer threads> <buffer size> <# items to produce>\n", argv[0]);
+	return -1;
     }
     for(i = 1; i < 5; i++){//Ensure all provided arguments are valid
 	argCheck = strtoul(argv[i], NULL, 10);
 	if(argCheck < 1 || argCheck >= UINT_MAX){//makes sure that all arguments can safely be cast to unsigned integers
 	    printf("argument %u (\'%s\') not valid. Please provide a positive integer no greater than %u.\n",
 		    i, argv[i], UINT_MAX - 1);
-	    printf("Usage: %s <# producer threads> #consumer threads> <buffer size> <# items to produce>\n", argv[0]);
-	    exit(1);
+	    printf("Usage: %s <# producer threads> <#consumer threads> <buffer size> <# items to produce>\n", argv[0]);
+	    return -1;
 	}
 	switch(i){
 	    case 1:
@@ -55,7 +56,7 @@ int main(int argc, char *argv[]){
 		buffer = createQueue((unsigned)argCheck);
 		if(buffer == NULL){
 		    fprintf(stderr, "Failed to allocate memory for buffer.\n");
-		    exit(1);
+		    return -1;
 		}
 		break;
 	    case 4:
@@ -90,7 +91,7 @@ int main(int argc, char *argv[]){
     producers = calloc(numProducers, sizeof(*producers));//See producer.c for the implementation of the producer function
     if(producers == NULL){//Check whether memory was allocated
 	fprintf(stderr, "Failed to allocate memory for producer threads.\n");
-	exit(1);
+	return -1;
     }
     for(i = 0; i < numProducers; i++){
 	pthread_create(&producers[i], NULL, producer, pArgs);
@@ -99,7 +100,7 @@ int main(int argc, char *argv[]){
     consumers = calloc(numConsumers, sizeof(*consumers));//See consumer.c for the implementation of the consumer function
     if(consumers == NULL){
 	fprintf(stderr, "Failed to allocate memory for consumer threads.\n");
-	exit(1);
+	return -1;
     }
     for(i = 0; i < numConsumers; i++){
 	pthread_create(&consumers[i], NULL, consumer, cArgs);
