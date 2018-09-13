@@ -2,10 +2,10 @@
 #include <stdlib.h>
 #include <limits.h>
 #include <pthread.h>
-#include <queue.h>
-#include <producer.h>
-#include <consumer.h>
-#include <arg_structs.h>
+#include "queue.h"
+#include "producer.h"
+#include "consumer.h"
+#include "argstructs.h"
 
 
 //Global variables belonging to this source file
@@ -14,15 +14,15 @@ pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t canProduce = PTHREAD_COND_INITIALIZER, canConsume = PTHREAD_COND_INITIALIZER;
 
 int main(int argc, char *argv[]){
-    unsigned i, numProducers, numConsumers, useProducerLog = 1, useConsumerLog = 1;
+    unsigned i, numProducers = 0, numConsumers = 0, useProducerLog = 1, useConsumerLog = 1;
     unsigned long argCheck;
     pthread_t *producers, *consumers;
     char *lineBuffer = NULL;
     size_t lineBufferSize = 50;
     FILE *producerLog, *consumerLog;
     
-    struct producer_args *pArgs = malloc(sizeof(*pArgs));
-    struct consumer_args *cArgs = malloc(sizeof(*cArgs));
+    producer_args *pArgs = malloc(sizeof(*pArgs));
+    consumer_args *cArgs = malloc(sizeof(*cArgs));
     if(pArgs == NULL || cArgs == NULL){
 	fprintf(stderr, "Failed to allocate memory for thread arguments.\n");
 	exit(1);
@@ -121,7 +121,7 @@ int main(int argc, char *argv[]){
 	fclose(consumerLog);
     }
     
-    deleteQueue(buffer);
+    buffer = deleteQueue(buffer);//deleteQueue returns a NULL pointer
     printf("All threads finished.\n");
     printf("Produced: %u\nConsumed: %u\n\n", pArgs->num_produced, cArgs->num_consumed);
     free(pArgs);

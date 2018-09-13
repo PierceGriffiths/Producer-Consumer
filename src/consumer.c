@@ -1,15 +1,15 @@
 #include <stdio.h>
 #include <time.h>
 #include <pthread.h>
-#include <queue.h>
-#include <arg_structs.h>
+#include "queue.h"
+#include "argstructs.h"
 
 //Global variables declared in producer-consumer.c
 extern Queue *buffer;
 extern pthread_mutex_t mutex;
 extern pthread_cond_t canProduce, canConsume; 
 
-void* consumer(struct consumer_args *args){
+void* consumer(consumer_args *args){
     struct timespec ts;
     const unsigned long id = pthread_self();
     unsigned num, i;

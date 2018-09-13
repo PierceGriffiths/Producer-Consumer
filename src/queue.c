@@ -14,13 +14,14 @@ Queue* createQueue(unsigned capacity){
     return q;
 }
 
-void deleteQueue(Queue *q){
+void* deleteQueue(Queue *q){
     q->front = 0;
     q->back = 0;
     q->size = 0;
     q->capacity = 0;
     free(q->array);
     q->array = NULL;
+    return NULL;
 }
 
 int isEmpty(Queue *q){//returns 1 if the array is empty, and 0 otherwise
@@ -39,8 +40,7 @@ unsigned enqueue(Queue *q, unsigned num){
 }
 
 unsigned dequeue(Queue *q){
-    unsigned data;
-    data = q->array[q->front];
+    unsigned data = q->array[q->front];
     q->front = (q->front + 1) % q->capacity;
     q->size--;
     return data;

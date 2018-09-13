@@ -7,11 +7,12 @@ IDIR=$(SDIR)/include
 ODIR=$(SDIR)/obj
 LIBS=-lpthread
 
-_DEPS = queue.h producer.h consumer.h arg_structs.h
+_DEPS = queue.h producer.h consumer.h argstructs.h 
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = queue.o producer.o consumer.o producer-consumer.o
+_OBJ = queue.o producer.o consumer.o producer-consumer.o 
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+
 
 $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 	@if [ ! -d "$(ODIR)" ]; then	\
@@ -21,7 +22,7 @@ $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 
 
 producer-consumer: $(OBJ)
-	gcc -o $@ $^ $(CFLAGS) $(LIBS)
+	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 
 .PHONY: clean
 
