@@ -1,6 +1,6 @@
 SHELL := /bin/bash
 CC=gcc
-CFLAGS= -march='native' -O3 -I$(IDIR) -Wall
+CFLAGS= -march='native' -O3 -std=c11 -pedantic -I$(IDIR) -Wall
 
 SDIR=./src
 IDIR=$(SDIR)/include

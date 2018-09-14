@@ -6,13 +6,12 @@
 #include "argstructs.h"
 
 //Global variables declared in producer-consumer.c
-extern Queue *buffer;
+extern Queue * restrict buffer;
 extern pthread_mutex_t mutex;
 extern pthread_cond_t canProduce, canConsume;
 
 
 void* producer(producer_args *args){
-    struct timespec ts;
     const unsigned long id = pthread_self();//Thread ID
     unsigned num, i;
     printf("Producer thread %lu started.\n", id);
@@ -30,8 +29,7 @@ void* producer(producer_args *args){
 	args->num_produced++;
 	i = enqueue(buffer, num);//Place num at end of the buffer and get its index
 	if(*args->useProducerLogPtr){
-	    clock_gettime(CLOCK_REALTIME, &ts);
-	    fprintf(args->producerLog, "%ld Producer %lu %u %u\n", ts.tv_nsec, id, i, num);
+	    fprintf(args->producerLog, "%ld Producer %lu %u %u\n", (long)time(NULL), id, i, num);
 	}
 
 	printf("Producer thread %lu produced %u and stored it at index %u\n",

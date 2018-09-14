@@ -1,3 +1,9 @@
+#ifdef __STDC_ALLOC_LIB__
+#define __STDC_WANT_LIB_EXT2__ 1
+#else
+#define _POSIX_C_SOURCE 200809L
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <limits.h>
@@ -9,7 +15,7 @@
 
 
 //Global variables belonging to this source file
-Queue *buffer;
+Queue * restrict buffer;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t canProduce = PTHREAD_COND_INITIALIZER, canConsume = PTHREAD_COND_INITIALIZER;
 
@@ -17,13 +23,13 @@ int main(int argc, char *argv[]){
     register unsigned i, numProducers = 0, numConsumers = 0;//register keyword tells compiler that it should try to optimize access to these variables
     unsigned useProducerLog = 1, useConsumerLog = 1;
     unsigned long argCheck;
-    pthread_t *producers, *consumers;
+    pthread_t * restrict producers, * restrict consumers;
     char *lineBuffer = NULL;
     size_t lineBufferSize = 50;
     FILE *producerLog, *consumerLog;
     
-    producer_args *pArgs = malloc(sizeof(*pArgs));
-    consumer_args *cArgs = malloc(sizeof(*cArgs));
+    producer_args * restrict pArgs = malloc(sizeof(*pArgs));
+    consumer_args * restrict cArgs = malloc(sizeof(*cArgs));
     if(pArgs == NULL || cArgs == NULL){
 	fprintf(stderr, "Failed to allocate memory for thread arguments.\n");
 	return -1;

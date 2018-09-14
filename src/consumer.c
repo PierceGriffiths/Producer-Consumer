@@ -5,12 +5,11 @@
 #include "argstructs.h"
 
 //Global variables declared in producer-consumer.c
-extern Queue *buffer;
+extern Queue * restrict buffer;
 extern pthread_mutex_t mutex;
 extern pthread_cond_t canProduce, canConsume; 
 
 void* consumer(consumer_args *args){
-    struct timespec ts;
     const unsigned long id = pthread_self();
     unsigned num, i;
     printf("Consumer thread %lu started.\n", id);
@@ -27,8 +26,7 @@ void* consumer(consumer_args *args){
 	num = dequeue(buffer);//Remove item at front of buffer
 	args->num_consumed++;//Increment num_consumed by 1
 	if(*args->useConsumerLogPtr){
-	    clock_gettime(CLOCK_REALTIME, &ts);
-	    fprintf(args->consumerLog, "%ld Consumer %lu %u %u\n", ts.tv_nsec, id, i, num);
+	    fprintf(args->consumerLog, "%ld Consumer %lu %u %u\n", (long)time(NULL), id, i, num);
 	}
 	printf("Consumer thread %lu consumed %u from index %u\n",
 		id, num, i);
