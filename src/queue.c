@@ -1,10 +1,10 @@
 #include <stdlib.h>
 
 typedef struct{
-    unsigned front, back, size, capacity, *array;
+    unsigned front, back, size, capacity, * restrict array;
 }Queue;
 
-Queue* createQueue(unsigned capacity){
+Queue* createQueue(unsigned const capacity){
     Queue *q = malloc(sizeof(*q));
     q->capacity = capacity;
     q->front = 0;
@@ -14,20 +14,20 @@ Queue* createQueue(unsigned capacity){
     return q;
 }
 
-void* deleteQueue(Queue *q){
+void* deleteQueue(Queue * restrict q){
     free(q->array);
     q->array = NULL;
     return NULL;
 }
 
-unsigned enqueue(Queue *q, unsigned num){
+unsigned enqueue(Queue * restrict q, unsigned const num){
     q->back = (q->back + 1)%q->capacity;
     q->array[q->back] = num;
     q->size++;
     return q->back;
 }
 
-unsigned dequeue(Queue *q){
+unsigned dequeue(Queue *restrict q){
     unsigned data = q->array[q->front];
     q->front = (q->front + 1) % q->capacity;
     q->size--;
