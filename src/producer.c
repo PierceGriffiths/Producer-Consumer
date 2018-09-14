@@ -26,7 +26,8 @@ void* producer(thread_args *args){
 	args->num_produced++;
 	i = enqueue(buffer, num);//Place num at end of the buffer and get its index
 	if(args->producerLog != NULL){
-	    fprintf(args->producerLog, "%ld Producer %lu %u %u\n", (long)time(NULL), id, i, num);
+	    clock_gettime(CLOCK_REALTIME, &args->ts);
+	    fprintf(args->producerLog, "%ld Producer %lu %u %u\n", args->ts.tv_nsec, id, i, num);
 	}
 
 	printf("Producer thread %lu produced %u and stored it at index %u\n",

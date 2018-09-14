@@ -24,7 +24,8 @@ void* consumer(thread_args *args){
 	num = dequeue(buffer);//Remove item at front of buffer
 	args->num_consumed++;//Increment num_consumed by 1
 	if(args->consumerLog != NULL){
-	    fprintf(args->consumerLog, "%ld Consumer %lu %u %u\n", (long)time(NULL), id, i, num);
+	    clock_gettime(CLOCK_REALTIME, &args->ts);
+	    fprintf(args->consumerLog, "%ld Consumer %lu %u %u\n", args->ts.tv_nsec, id, i, num);
 	}
 	printf("Consumer thread %lu consumed %u from index %u\n",
 		id, num, i);

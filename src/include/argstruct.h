@@ -7,5 +7,6 @@ typedef struct{
     FILE * restrict producerLog, * restrict consumerLog;
     pthread_mutex_t * restrict mutex;
     pthread_cond_t * restrict canProduce, * restrict canConsume;
+    struct timespec ts;
 }thread_args;
 #endif
