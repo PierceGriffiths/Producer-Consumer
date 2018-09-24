@@ -1,4 +1,5 @@
 producer-event.log
 consumer-event.log
 producer-consumer
+debug-pc
 src/obj/

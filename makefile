@@ -10,7 +10,7 @@ LIBS=-lpthread
 _DEPS = queue.h producer.h consumer.h argstruct.h 
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = queue.o producer.o consumer.o producer-consumer.o 
+_OBJ = queue.o producer.o consumer.o producer-consumer.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
@@ -24,7 +24,7 @@ producer-consumer: $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 debug: $(OBJ)
-	$(CC) -g $(CFLAGS) -o debug-pc $^ $(LIBS)
+	$(CC) -g $(CFLAGS) -Og -o debug-pc $^ $(LIBS)
 
 .PHONY: clean
 
