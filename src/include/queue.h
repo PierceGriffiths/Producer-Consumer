@@ -12,11 +12,11 @@ unsigned enqueue(Queue * restrict q, unsigned const num);
 
 unsigned dequeue(Queue *restrict q);
 
-__attribute__((always_inline)) inline int isEmpty(const Queue *q){
+__attribute__((always_inline)) inline int isEmpty(const Queue * restrict q){
     return (q->size == 0);
 }
 
-__attribute__((always_inline)) inline int isFull(const Queue *q){
+__attribute__((always_inline)) inline int isFull(const Queue * restrict q){
     return q->size == q->capacity;
 }
 #endif
