@@ -73,12 +73,6 @@ int main(int argc, char *argv[]){
     if(forkAndJoin(&numProducers, &numConsumers, tArgs))
 	return -1;
 
-    if(producerLog != NULL)
-	fclose(producerLog);
-
-    if(consumerLog != NULL)
-	fclose(consumerLog);
-
     return readLogFiles(producerLog, consumerLog);
 }//main
 
@@ -184,16 +178,21 @@ static int forkAndJoin(const unsigned *numProducers, const unsigned *numConsumer
 	    return -1;
 	}
     }
-
     pthread_attr_destroy(&tAttrs);
 
     for(i = *numProducers; i; )
 	pthread_join(producers[--i], NULL);
     free(producers);
 
+    if(tArgs->producerLog != NULL)
+	fclose(tArgs->producerLog);
+
     for(i = *numConsumers; i; )
 	pthread_join(consumers[--i], NULL);
     free(consumers);
+
+    if(tArgs->consumerLog != NULL)
+	fclose(tArgs->consumerLog);
 
     buffer = deleteQueue(buffer);//deleteQueue returns a NULL pointer
     pthread_mutex_destroy(&mutex);
