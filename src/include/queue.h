@@ -6,17 +6,17 @@ typedef struct{
 
 Queue* createQueue(unsigned const capacity);
 
-void* deleteQueue(Queue *q);
+void* deleteQueue(Queue * restrict q);
 
-inline int isEmpty(const Queue *q){
+unsigned enqueue(Queue * restrict q, unsigned const num);
+
+unsigned dequeue(Queue *restrict q);
+
+__attribute__((always_inline)) inline int isEmpty(const Queue *q){
     return (q->size == 0);
 }
 
-inline int isFull(const Queue *q){
-    return (q->size == q->capacity);
+__attribute__((always_inline)) inline int isFull(const Queue *q){
+    return q->size == q->capacity;
 }
-
-unsigned enqueue(Queue *q, unsigned const num);
-
-unsigned dequeue(Queue *q);
 #endif

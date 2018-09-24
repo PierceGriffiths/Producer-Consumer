@@ -18,7 +18,8 @@ void* consumer(thread_args *args){
 	}
 	if(args->num_consumed == args->target){
 	    pthread_mutex_unlock(args->mutex);
-	    break;
+	    printf("Consumer thread %lu finished.\n", id);
+	    return NULL;
 	}
 	i = buffer->front;//Need to get front index before it changes in next line's function call
 	num = dequeue(buffer);//Remove item at front of buffer

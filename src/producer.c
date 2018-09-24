@@ -14,24 +14,28 @@ void* producer(thread_args *args){
     printf("Producer thread %lu started.\n", id);
     srand(time(NULL) + rand());
     while(args->num_produced < args->target){
-	num = rand();//Get random number
 	pthread_mutex_lock(args->mutex);//Lock buffer
 	while(isFull(buffer)){//If buffer is full, unlock until something is consumed
 	    pthread_cond_wait(args->canProduce, args->mutex);
 	}
 	if(args->num_produced == args->target){
 	    pthread_mutex_unlock(args->mutex);
-	    break;
+	    printf("Producer thread %lu finished.\n", id);
+	    return NULL;//Eliminates branch instruction at assembly level
 	}
-	args->num_produced++;
-	i = enqueue(buffer, num);//Place num at end of the buffer and get its index
+	num = rand();//Get random number
 	if(args->producerLog != NULL){
+	    i = enqueue(buffer, num);//Place num at end of the buffer and get its index
 	    clock_gettime(CLOCK_REALTIME, &args->ts);
 	    fprintf(args->producerLog, "%ld Producer %lu %u %u\n", args->ts.tv_nsec, id, i, num);
-	}
-
-	printf("Producer thread %lu produced %u and stored it at index %u\n",
+	    printf("Producer thread %lu produced %u and stored it at index %u\n",
 		id, num, i);
+	}
+	else{//Don't bother writing the index to i when producer-event.log isn't being written to
+	    printf("Producer thread %lu produced %u and stored it at index %u\n", id, num, enqueue(buffer, num));
+	}
+	
+	args->num_produced++;
 
 	pthread_cond_broadcast(args->canConsume);//Signal to waiting consumers
 	pthread_mutex_unlock(args->mutex);//Unlock buffer
