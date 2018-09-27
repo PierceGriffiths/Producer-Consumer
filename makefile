@@ -1,11 +1,16 @@
 SHELL := /bin/bash
 CC=gcc
-CFLAGS= -march='native' -O3 -std=gnu11 -pedantic -I$(IDIR) -Wall
-
+CFLAGS= -march='native' -std=gnu11 -pedantic -I$(IDIR) -Wall
 SDIR=./src
 IDIR=$(SDIR)/include
-ODIR=$(SDIR)/obj
 LIBS=-lpthread
+ifneq ($(MAKECMDGOALS),debug)
+    CFLAGS += -O3
+    ODIR=$(SDIR)/obj
+else
+    CFLAGS += -Og -g -pg
+    ODIR=$(SDIR)/obj/debug
+endif
 
 _DEPS = queue.h producer.h consumer.h argstruct.h 
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
@@ -15,7 +20,7 @@ OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 	@if [ ! -d "$(ODIR)" ]; then	\
-	    mkdir $(ODIR);		\
+	    mkdir -p $(ODIR);		\
 	fi;				
 	$(CC) $(CFLAGS) -c -o $@ $<
 
@@ -24,9 +29,9 @@ producer-consumer: $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 debug: $(OBJ)
-	$(CC) -g $(CFLAGS) -Og -o debug-pc $^ $(LIBS)
+	$(CC) $(CFLAGS) -o debug-pc $^ $(LIBS)
 
 .PHONY: clean
 
 clean:
-	rm -f $(ODIR)/*.o *~ core $(INCDIR)/*~
+	rm -f $(ODIR)/*.o $(ODIR)/debug/*.o *~ core $(INCDIR)/*~

@@ -44,18 +44,18 @@ static int readLogFiles(register FILE *producerLog, register FILE *consumerLog);
 int main(int argc, char *argv[]){
     unsigned numProducers = 0, numConsumers = 0;
     register FILE *producerLog, *consumerLog;//The addresses of these pointers themselves are never taken, so the use of the register keyword here is valid
-    thread_args * restrict tArgs = malloc(sizeof(*tArgs));
+    thread_args * restrict tArgs;
 
     if(argc != 5){//check for correct number of arguments
 	printf("Usage: %s <# producer threads> <#consumer threads> <buffer size> <# items to produce>\n", argv[0]);
 	return -1;
     }
+
+    tArgs = malloc(sizeof(*tArgs));
     if(tArgs == NULL){
 	printf("Failed to allocate memory for thread arguments.\n");
 	return -1;
     }
-    tArgs->num_produced = 0;
-    tArgs->num_consumed = 0;
 
     if(checkArguments(argv, tArgs, &numProducers, &numConsumers))
 	return -1;
@@ -83,6 +83,7 @@ static int checkArguments(char *argv[], thread_args * restrict tArgs, unsigned *
     struct rlimit rlim;
 #endif
 
+
     for(i = 1; i < 5; ++i){//Ensure all provided arguments are valid
 	argCheck = strtoul(argv[i], NULL, 10);
 	if(argCheck == 0 || argCheck >= UINT_MAX){//makes sure that all arguments can safely be cast to unsigned integers
@@ -100,7 +101,7 @@ static int checkArguments(char *argv[], thread_args * restrict tArgs, unsigned *
 		continue;
 	    case 3:
 		buffer = createQueue((unsigned)argCheck);
-		if(buffer == NULL || buffer->array == NULL){
+		if(buffer == NULL){
 		    printf("Failed to allocate memory for buffer.\n");
 		    return -1;
 		}
@@ -120,11 +121,14 @@ static int checkArguments(char *argv[], thread_args * restrict tArgs, unsigned *
 	prlimit(0, RLIMIT_NPROC, &rlim, NULL);
     }
 #endif
+    tArgs->num_produced = 0;
+    tArgs->num_consumed = 0;
+
     return 0;
 }//checkArguments
 
 static int forkAndJoin(const unsigned *numProducers, const unsigned *numConsumers, thread_args *tArgs){
-    int i;
+    unsigned i;
     pthread_mutex_t mutex;
     pthread_cond_t canProduce, canConsume;
     pthread_t *producers, *consumers;

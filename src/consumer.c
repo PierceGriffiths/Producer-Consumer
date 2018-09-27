@@ -9,7 +9,7 @@ extern Queue * restrict buffer;
 
 void* consumer(thread_args *args){
     const register unsigned long id = pthread_self();
-    register unsigned num, i;
+    unsigned num, i;
     printf("Consumer thread %lu started.\n", id);
     while(args->num_consumed < args->target){
 	pthread_mutex_lock(args->mutex);//Lock buffer
@@ -21,8 +21,7 @@ void* consumer(thread_args *args){
 	    printf("Consumer thread %lu finished.\n", id);
 	    return NULL;
 	}
-	i = buffer->front;//Need to get front index before it changes in next line's function call
-	num = dequeue(buffer);//Remove item at front of buffer
+	i = dequeue(buffer, &num);
 	args->num_consumed++;//Increment num_consumed by 1
 	if(args->consumerLog != NULL){
 	    clock_gettime(CLOCK_REALTIME, &args->ts);

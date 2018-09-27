@@ -10,7 +10,7 @@ void* deleteQueue(Queue * restrict q);
 
 unsigned enqueue(Queue * restrict q, unsigned const num);
 
-unsigned dequeue(Queue *restrict q);
+unsigned dequeue(Queue *restrict q, unsigned *restrict num);
 
 __attribute__((always_inline)) inline int isEmpty(const Queue * restrict q){
     return (q->size == 0);
