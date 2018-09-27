@@ -12,4 +12,16 @@ typedef struct{
     pthread_cond_t * restrict canProduce, * restrict canConsume;
     struct timespec ts;
 }pc_thread_args;
+
+typedef struct{
+    int ret;
+    FILE * restrict producerLog;
+    pthread_mutex_t * restrict mutex;
+}producerlog_thread_args;
+
+typedef struct{
+    int ret;
+    FILE  * restrict consumerLog;
+    pthread_mutex_t * restrict mutex;
+}consumerlog_thread_args;
 #endif

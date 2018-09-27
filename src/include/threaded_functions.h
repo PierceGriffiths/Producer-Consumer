@@ -3,4 +3,8 @@
 void* producer(void *arg);
 
 void* consumer(void *arg);
+
+void* producer_log_reader(void *arg);
+
+void* consumer_log_reader(void *arg);
 #endif

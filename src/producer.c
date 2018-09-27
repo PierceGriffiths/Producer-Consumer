@@ -34,7 +34,7 @@ void* producer(pc_thread_args *args){
 	else{//Don't bother writing the index to i when producer-event.log isn't being written to
 	    printf("Producer thread %lu produced %u and stored it at index %u\n", id, num, enqueue(buffer, num));
 	}
-	
+
 	args->num_produced++;
 
 	pthread_cond_broadcast(args->canConsume);//Signal to waiting consumers
