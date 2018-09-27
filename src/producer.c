@@ -8,7 +8,7 @@
 //Global variables declared in producer-consumer.c
 extern Queue * restrict buffer;
 
-void* producer(thread_args *args){
+void* producer(pc_thread_args *args){
     const register unsigned long id = pthread_self();//Thread ID
     unsigned register num, i;
     printf("Producer thread %lu started.\n", id);
@@ -21,7 +21,7 @@ void* producer(thread_args *args){
 	if(args->num_produced == args->target){
 	    pthread_mutex_unlock(args->mutex);
 	    printf("Producer thread %lu finished.\n", id);
-	    return NULL;//Eliminates branch instruction at assembly level
+	    pthread_exit(NULL);//Eliminates branch instruction at assembly level
 	}
 	num = rand();//Get random number
 	if(args->producerLog != NULL){
@@ -34,12 +34,12 @@ void* producer(thread_args *args){
 	else{//Don't bother writing the index to i when producer-event.log isn't being written to
 	    printf("Producer thread %lu produced %u and stored it at index %u\n", id, num, enqueue(buffer, num));
 	}
-	
+
 	args->num_produced++;
 
 	pthread_cond_broadcast(args->canConsume);//Signal to waiting consumers
 	pthread_mutex_unlock(args->mutex);//Unlock buffer
     }
     printf("Producer thread %lu finished.\n", id);
-    return NULL;//End of thread
+    pthread_exit(NULL);//End of thread
 }

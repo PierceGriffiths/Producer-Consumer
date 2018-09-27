@@ -7,7 +7,7 @@
 //Global variables declared in producer-consumer.c
 extern Queue * restrict buffer;
 
-void* consumer(thread_args *args){
+void* consumer(pc_thread_args *args){
     const register unsigned long id = pthread_self();
     unsigned num, i;
     printf("Consumer thread %lu started.\n", id);
@@ -19,7 +19,7 @@ void* consumer(thread_args *args){
 	if(args->num_consumed == args->target){
 	    pthread_mutex_unlock(args->mutex);
 	    printf("Consumer thread %lu finished.\n", id);
-	    return NULL;
+	    pthread_exit(NULL);
 	}
 	i = dequeue(buffer, &num);
 	args->num_consumed++;//Increment num_consumed by 1
@@ -33,5 +33,5 @@ void* consumer(thread_args *args){
 	pthread_mutex_unlock(args->mutex);//Unlock buffer
     }
     printf("Consumer thread %lu finished.\n", id);
-    return NULL;//End of thread
+    pthread_exit(NULL);//End of thread
 }

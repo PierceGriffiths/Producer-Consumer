@@ -12,10 +12,10 @@ else
     ODIR=$(SDIR)/obj/debug
 endif
 
-_DEPS = queue.h producer.h consumer.h argstruct.h 
+_DEPS = queue.h threaded_functions.h argstruct.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = queue.o producer.o consumer.o producer-consumer.o
+_OBJ = queue.o producer.o consumer.o logreader_threads.o producer_consumer.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)

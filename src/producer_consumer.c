@@ -1,7 +1,5 @@
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
-#define PRODUCER_LOG_FILENAME "producer-event.log"
-#define CONSUMER_LOG_FILENAME "consumer-event.log"
 
 #if defined(__linux__)
 #define IS_POSIX
@@ -31,20 +29,19 @@
 #include <limits.h>
 #include <pthread.h>
 #include "queue.h"
-#include "producer.h"
-#include "consumer.h"
+#include "threaded_functions.h"
 #include "argstruct.h"
 
 Queue * restrict buffer;
 
-static int checkArguments(char *argv[], thread_args * restrict tArgs, unsigned *numProducers, unsigned *numConsumers);
-static int forkAndJoin(const unsigned *numProducers, const unsigned *numConsumers, thread_args *tArgs);
-static int readLogFiles(register FILE *producerLog, register FILE *consumerLog);
+static void checkArguments(char *argv[], pc_thread_args * restrict tArgs, unsigned *numProducers, unsigned *numConsumers);
+static void forkAndJoin(const unsigned *numProducers, const unsigned *numConsumers, pc_thread_args *tArgs);
+static void readLogFiles(register FILE *producerLog, register FILE *consumerLog);
 
 int main(int argc, char *argv[]){
     unsigned numProducers = 0, numConsumers = 0;
     register FILE *producerLog, *consumerLog;//The addresses of these pointers themselves are never taken, so the use of the register keyword here is valid
-    thread_args * restrict tArgs;
+    pc_thread_args * restrict tArgs;
 
     if(argc != 5){//check for correct number of arguments
 	printf("Usage: %s <# producer threads> <#consumer threads> <buffer size> <# items to produce>\n", argv[0]);
@@ -57,8 +54,7 @@ int main(int argc, char *argv[]){
 	return -1;
     }
 
-    if(checkArguments(argv, tArgs, &numProducers, &numConsumers))
-	return -1;
+    checkArguments(argv, tArgs, &numProducers, &numConsumers);
 
     producerLog = fopen(PRODUCER_LOG_FILENAME, "w");
     tArgs->producerLog = producerLog;
@@ -70,13 +66,11 @@ int main(int argc, char *argv[]){
     if(consumerLog == NULL)
 	printf("Unable to open %s for writing. Proceeding without consumer event logging.\n", CONSUMER_LOG_FILENAME);
 
-    if(forkAndJoin(&numProducers, &numConsumers, tArgs))
-	return -1;
-
-    return readLogFiles(producerLog, consumerLog);
+    forkAndJoin(&numProducers, &numConsumers, tArgs);
+    readLogFiles(producerLog, consumerLog);
 }//main
 
-static int checkArguments(char *argv[], thread_args * restrict tArgs, unsigned *numProducers, unsigned *numConsumers){
+static void checkArguments(char *argv[], pc_thread_args * restrict tArgs, unsigned *numProducers, unsigned *numConsumers){
     unsigned long argCheck;
     int i;
 #ifdef SUPPORTS_RLIM
@@ -90,7 +84,7 @@ static int checkArguments(char *argv[], thread_args * restrict tArgs, unsigned *
 	    printf("argument %u (\'%s\') not valid. Please provide a positive integer no greater than %u.\n",
 		    i, argv[i], UINT_MAX - 1);
 	    printf("Usage: %s <# producer threads> <#consumer threads> <buffer size> <# items to produce>\n", argv[0]);
-	    return -1;
+	    exit(-1);
 	}
 	switch(i){
 	    case 1:
@@ -103,7 +97,7 @@ static int checkArguments(char *argv[], thread_args * restrict tArgs, unsigned *
 		buffer = createQueue((unsigned)argCheck);
 		if(buffer == NULL){
 		    printf("Failed to allocate memory for buffer.\n");
-		    return -1;
+		    exit(-1);
 		}
 		continue;
 	    case 4:
@@ -114,7 +108,7 @@ static int checkArguments(char *argv[], thread_args * restrict tArgs, unsigned *
     prlimit(0, RLIMIT_NPROC, NULL, &rlim);//Stores the soft and hard limits for the number of threads that the invoking user is permitted to have running
     if(*numProducers + *numConsumers >= rlim.rlim_max){//If the total number of threads the user requested exceeds the hard limit, don't bother going any further
 	printf("The number of threads you wish to create exceeds the hard limit for the number of threads that can be created by the current user.\n");
-	return -1;
+	exit(-1);
     }
     else if(*numProducers + *numConsumers > rlim.rlim_cur ){//Check if the soft limit should be increased
 	rlim.rlim_cur = rlim.rlim_max;
@@ -123,34 +117,33 @@ static int checkArguments(char *argv[], thread_args * restrict tArgs, unsigned *
 #endif
     tArgs->num_produced = 0;
     tArgs->num_consumed = 0;
-
-    return 0;
 }//checkArguments
 
-static int forkAndJoin(const unsigned *numProducers, const unsigned *numConsumers, thread_args *tArgs){
+static void forkAndJoin(const unsigned *numProducers, const unsigned *numConsumers, pc_thread_args *tArgs){
     unsigned i;
     pthread_mutex_t mutex;
     pthread_cond_t canProduce, canConsume;
     pthread_t *producers, *consumers;
     pthread_attr_t tAttrs;//thread attributes
 
+
 #ifdef __linux__//pthread_attr_init() always succeeds on Linux
     pthread_attr_init(&tAttrs);
 #else
     if(pthread_attr_init(&tAttrs)){//pthread_attr_init() returns nozero on error
 	printf("Failed to initialize thread attributes.\n");
-	return -1;
+	exit(-1);
     }
 #endif
 
     if(pthread_mutex_init(&mutex, NULL)){//pthread_mutex_init() returns a nonzero int upon failure
 	printf("Failed to initialize mutex.\n");
-	return -1;
+	exit(-1);
     }
 
     if(pthread_cond_init(&canProduce, NULL) || pthread_cond_init(&canConsume, NULL)){//pthread_cond_init() returns a nonzero int upon failure
 	printf("Failed to initialize condition variables.\n");
-	return -1;
+	exit(-1);
     }
     tArgs->mutex = &mutex;
     tArgs->canConsume = &canConsume;
@@ -160,26 +153,26 @@ static int forkAndJoin(const unsigned *numProducers, const unsigned *numConsumer
     producers = calloc(*numProducers, sizeof(*producers));//See producer.c for the implementation of the producer function
     if(producers == NULL){//Check whether memory was allocated
 	printf("Failed to allocate memory for producer threads.\n");
-	return -1;
+	exit(-1);
     }
 
     consumers = calloc(*numConsumers, sizeof(*consumers));//See consumer.c for the implementation of the consumer function
     if(consumers == NULL){
 	printf("Failed to allocate memory for consumer threads.\n");
-	return -1;
+	exit(-1);
     }
 
     for(i = *numProducers; i; ){
 	if(pthread_create(&producers[--i], &tAttrs, producer, tArgs)){//Check for a nonzero return value, which indicates an error
 	    printf("Unable to create the requested number of threads.\n");
-	    return -1;
+	    exit(1);
 	}
     }
 
     for(i = *numConsumers; i; ){
 	if(pthread_create(&consumers[--i], &tAttrs, consumer, tArgs)){//Check for a nonzero return value, which indicates an error
 	    printf("Failed to create the requested number of threads.\n");
-	    return -1;
+	    exit(-1);
 	}
     }
     pthread_attr_destroy(&tAttrs);
@@ -207,66 +200,51 @@ static int forkAndJoin(const unsigned *numProducers, const unsigned *numConsumer
     printf("Produced: %u\nConsumed: %u\n\n", tArgs->num_produced, tArgs->num_consumed);
     free(tArgs);
     tArgs = NULL;
-    return 0;
 }//forkAndJoin
 
-static int readLogFiles(register FILE *producerLog, register FILE *consumerLog){
-    char *lineBuffer = NULL;
-    size_t lineBufferSize = 50;
+static void readLogFiles(register FILE *producerLog, register FILE *consumerLog){
+    producerlog_thread_args producerlog_args;
+    consumerlog_thread_args consumerlog_args;
+    pthread_t producerlog_thread, consumerlog_thread;
+    pthread_mutex_t mutex;
+    pthread_attr_t tAttrs;//thread attributes
 
-    if(producerLog != NULL || consumerLog != NULL){
-	lineBuffer = calloc(lineBufferSize, sizeof(*lineBuffer));
-	if(lineBuffer == NULL){
-	    printf("Failed to allocate memory needed to read log files.\nDone.\n");
-	    return -1;
-	}
+#ifdef __linux__//pthread_attr_init() always succeeds on Linux
+    pthread_attr_init(&tAttrs);
+#else
+    if(pthread_attr_init(&tAttrs)){//pthread_attr_init() returns nozero on error
+	printf("Failed to initialize thread attributes. Log files will not be read.\n");
+	 exit(-1);
     }
-    else{
-	printf("Neither log file was written to, so neither log file will be read.\nDone.\n");
-	return 1;
+#endif
+
+    if(pthread_mutex_init(&mutex, NULL)){//pthread_mutex_init() returns a nonzero int upon failure
+	printf("Failed to initialize mutex. Log files will not be read.\n");
+	exit(-1);
     }
+    producerlog_args.mutex = &mutex;
+    consumerlog_args.mutex = &mutex;
+    producerlog_args.producerLog = producerLog;
+    consumerlog_args.consumerLog = consumerLog;
 
-    if(producerLog != NULL){
-	producerLog = fopen(PRODUCER_LOG_FILENAME, "r");
+    pthread_attr_setstacksize(&tAttrs, 32768);//set minimum stack size for threads to 32 KiB
 
-	if(producerLog == NULL){
-	    printf("Unable to read from %s.\n", PRODUCER_LOG_FILENAME);
-	}
-	else{
-	    printf("Reading from %s:\n", PRODUCER_LOG_FILENAME);
-	    while(getline(&lineBuffer, &lineBufferSize, producerLog) != -1){
-		printf("%s", lineBuffer);
-	    }
+    pthread_create(&producerlog_thread, &tAttrs, producer_log_reader, &producerlog_args);
+    pthread_create(&consumerlog_thread, &tAttrs, consumer_log_reader, &consumerlog_args);
+    pthread_attr_destroy(&tAttrs);
 
-	    fclose(producerLog);
-	    printf("End of %s.\n\n", PRODUCER_LOG_FILENAME);
-	}
-    }
-    else{
-	printf("\n%s was not written to, so it will not be read.\n", PRODUCER_LOG_FILENAME);
-    }
+    pthread_join(producerlog_thread, NULL);
+    pthread_join(consumerlog_thread, NULL);
+    pthread_mutex_destroy(&mutex);
 
-    if(consumerLog != NULL){
-	consumerLog = fopen(CONSUMER_LOG_FILENAME, "r");
-
-	if(consumerLog == NULL){
-	    printf("Unable to read from %s.\n", CONSUMER_LOG_FILENAME);
-	}
-	else{
-	    printf("Reading from %s:\n", CONSUMER_LOG_FILENAME);
-	    while(getline(&lineBuffer, &lineBufferSize, consumerLog) != -1){
-		printf("%s", lineBuffer);
-	    }
-
-	    fclose(consumerLog);
-	    printf("End of %s.\n\n", CONSUMER_LOG_FILENAME);
-	}
-    }
-    else{
-	printf("\n%s was not written to, so it will not be read.\n", CONSUMER_LOG_FILENAME);
-    }
-
-    free(lineBuffer);
-    printf("Done.\n");
-    return 0;
+    if(!consumerlog_args.ret && !producerlog_args.ret)
+	exit(0);//Return 0 if both rets are 0
+    else if(consumerlog_args.ret == producerlog_args.ret)
+	exit(producerlog_args.ret);//return either ret if they're equal
+    else if(!producerlog_args.ret)
+	exit(consumerlog_args.ret);//return the nonzero consumerlog_args.ret if producerlog_args.ret is 0
+    else if(!consumerlog_args.ret)
+	exit(producerlog_args.ret);//return the nonzero producerlog_args.ret if consumerlog_args.ret is 0
+    else
+	exit(-1);//One ret is -1 and the other is 1, so return -1
 }//readLogFiles
