@@ -1,7 +1,5 @@
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
-#define PRODUCER_LOG_FILENAME "producer-event.log"
-#define CONSUMER_LOG_FILENAME "consumer-event.log"
 
 #if defined(__linux__)
 #define IS_POSIX
@@ -31,20 +29,19 @@
 #include <limits.h>
 #include <pthread.h>
 #include "queue.h"
-#include "producer.h"
-#include "consumer.h"
+#include "threaded_functions.h"
 #include "argstruct.h"
 
 Queue * restrict buffer;
 
-static int checkArguments(char *argv[], thread_args * restrict tArgs, unsigned *numProducers, unsigned *numConsumers);
-static int forkAndJoin(const unsigned *numProducers, const unsigned *numConsumers, thread_args *tArgs);
+static int checkArguments(char *argv[], pc_thread_args * restrict tArgs, unsigned *numProducers, unsigned *numConsumers);
+static int forkAndJoin(const unsigned *numProducers, const unsigned *numConsumers, pc_thread_args *tArgs);
 static int readLogFiles(register FILE *producerLog, register FILE *consumerLog);
 
 int main(int argc, char *argv[]){
     unsigned numProducers = 0, numConsumers = 0;
     register FILE *producerLog, *consumerLog;//The addresses of these pointers themselves are never taken, so the use of the register keyword here is valid
-    thread_args * restrict tArgs;
+    pc_thread_args * restrict tArgs;
 
     if(argc != 5){//check for correct number of arguments
 	printf("Usage: %s <# producer threads> <#consumer threads> <buffer size> <# items to produce>\n", argv[0]);
@@ -76,7 +73,7 @@ int main(int argc, char *argv[]){
     return readLogFiles(producerLog, consumerLog);
 }//main
 
-static int checkArguments(char *argv[], thread_args * restrict tArgs, unsigned *numProducers, unsigned *numConsumers){
+static int checkArguments(char *argv[], pc_thread_args * restrict tArgs, unsigned *numProducers, unsigned *numConsumers){
     unsigned long argCheck;
     int i;
 #ifdef SUPPORTS_RLIM
@@ -127,7 +124,7 @@ static int checkArguments(char *argv[], thread_args * restrict tArgs, unsigned *
     return 0;
 }//checkArguments
 
-static int forkAndJoin(const unsigned *numProducers, const unsigned *numConsumers, thread_args *tArgs){
+static int forkAndJoin(const unsigned *numProducers, const unsigned *numConsumers, pc_thread_args *tArgs){
     unsigned i;
     pthread_mutex_t mutex;
     pthread_cond_t canProduce, canConsume;
