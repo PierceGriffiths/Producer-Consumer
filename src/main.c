@@ -36,7 +36,7 @@ Queue * restrict buffer;
 
 static void checkArguments(char *argv[], pc_thread_args * restrict tArgs, unsigned *numProducers, unsigned *numConsumers);
 static void forkAndJoin(const unsigned *numProducers, const unsigned *numConsumers, pc_thread_args *tArgs);
-static void readLogFiles(register FILE *producerLog, register FILE *consumerLog);
+static void readLogFiles(FILE *restrict producerLog, FILE *restrict consumerLog);
 
 int main(int argc, char *argv[]){
     unsigned numProducers = 0, numConsumers = 0;
@@ -202,7 +202,7 @@ static void forkAndJoin(const unsigned *numProducers, const unsigned *numConsume
     tArgs = NULL;
 }//forkAndJoin
 
-static void readLogFiles(register FILE *producerLog, register FILE *consumerLog){
+static void readLogFiles(FILE *restrict producerLog, FILE *restrict consumerLog){
     producerlog_thread_args producerlog_args;
     consumerlog_thread_args consumerlog_args;
     pthread_t producerlog_thread, consumerlog_thread;

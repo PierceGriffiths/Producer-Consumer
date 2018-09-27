@@ -15,7 +15,7 @@ endif
 _DEPS = queue.h threaded_functions.h argstruct.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = queue.o producer.o consumer.o logreader_threads.o producer_consumer.o
+_OBJ = queue.o producer.o consumer.o logreader_threads.o main.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)

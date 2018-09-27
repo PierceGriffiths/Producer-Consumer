@@ -7,7 +7,7 @@
 
 typedef struct{
     unsigned num_produced, num_consumed, target;
-    FILE *producerLog, *consumerLog;
+    FILE * restrict producerLog, * restrict consumerLog;
     pthread_mutex_t * restrict mutex;
     pthread_cond_t * restrict canProduce, * restrict canConsume;
     struct timespec ts;
@@ -15,14 +15,14 @@ typedef struct{
 
 typedef struct{
     int ret;
-    FILE *producerLog;
-    pthread_mutex_t *mutex;
+    FILE * restrict producerLog;
+    pthread_mutex_t * restrict mutex;
 }producerlog_thread_args;
 
 typedef struct{
     int ret;
-    FILE *consumerLog;
-    pthread_mutex_t *mutex;
+    FILE  * restrict consumerLog;
+    pthread_mutex_t * restrict mutex;
 }consumerlog_thread_args;
 
 #endif
