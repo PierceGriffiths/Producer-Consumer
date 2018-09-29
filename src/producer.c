@@ -10,7 +10,8 @@ extern Queue * restrict buffer;
 
 void* producer(pc_thread_args *args){
     const register unsigned long id = pthread_self();//Thread ID
-    unsigned register num, i;
+    unsigned register num;
+    size_t i;
     printf("Producer thread %lu started.\n", id);
     srand(time(NULL) + rand());
     while(args->num_produced < args->target){
@@ -27,18 +28,18 @@ void* producer(pc_thread_args *args){
 	if(args->producerLog != NULL){
 	    i = enqueue(buffer, num);//Place num at end of the buffer and get its index
 	    clock_gettime(CLOCK_REALTIME, &args->ts);
-	    fprintf(args->producerLog, "%ld Producer %lu %u %u\n", args->ts.tv_nsec, id, i, num);
-	    printf("Producer thread %lu produced %u and stored it at index %u\n",
+	    fprintf(args->producerLog, "%ld Producer %lu %zu %u\n", args->ts.tv_nsec, id, i, num);
+	    printf("Producer thread %lu produced %u and stored it at index %zu\n",
 		id, num, i);
 	}
 	else{//Don't bother writing the index to i when producer-event.log isn't being written to
-	    printf("Producer thread %lu produced %u and stored it at index %u\n", id, num, enqueue(buffer, num));
+	    printf("Producer thread %lu produced %u and stored it at index %zu\n", id, num, enqueue(buffer, num));
 	}
 
 	args->num_produced++;
 
-	pthread_cond_broadcast(args->canConsume);//Signal to waiting consumers
 	pthread_mutex_unlock(args->mutex);//Unlock buffer
+	pthread_cond_broadcast(args->canConsume);//Signal to waiting consumers
     }
     printf("Producer thread %lu finished.\n", id);
     pthread_exit(NULL);//End of thread

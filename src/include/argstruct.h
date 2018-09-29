@@ -6,22 +6,22 @@
 #include <pthread.h>
 
 typedef struct{
-    unsigned num_produced, num_consumed, target;
     FILE * restrict producerLog, * restrict consumerLog;
     pthread_mutex_t * restrict mutex;
     pthread_cond_t * restrict canProduce, * restrict canConsume;
+    size_t num_produced, num_consumed, target;
     struct timespec ts;
 }pc_thread_args;
 
 typedef struct{
-    int ret;
-    FILE * restrict producerLog;
     pthread_mutex_t * restrict mutex;
+    FILE * restrict producerLog;
+    short ret;
 }producerlog_thread_args;
 
 typedef struct{
-    int ret;
     FILE  * restrict consumerLog;
     pthread_mutex_t * restrict mutex;
+    short ret;
 }consumerlog_thread_args;
 #endif

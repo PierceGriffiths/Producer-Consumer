@@ -29,8 +29,8 @@ void* consumer(pc_thread_args *args){
 	}
 	printf("Consumer thread %lu consumed %u from index %u\n",
 		id, num, i);
-	pthread_cond_broadcast(args->canProduce);//Signal to waiting producers
 	pthread_mutex_unlock(args->mutex);//Unlock buffer
+	pthread_cond_broadcast(args->canProduce);//Signal to waiting producers
     }
     printf("Consumer thread %lu finished.\n", id);
     pthread_exit(NULL);//End of thread

@@ -26,22 +26,23 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <limits.h>
 #include <pthread.h>
+#include <inttypes.h>
+#include <errno.h>
 #include "queue.h"
 #include "threaded_functions.h"
 #include "argstruct.h"
 
 Queue * restrict buffer;
 
-static int checkArguments(char *argv[], pc_thread_args * restrict tArgs, unsigned *numProducers, unsigned *numConsumers);
-static int forkAndJoin(const unsigned *numProducers, const unsigned *numConsumers, pc_thread_args *tArgs);
-static int readLogFiles(register FILE *restrict producerLog, register FILE *restrict consumerLog);
+static void checkArguments(char *argv[], pc_thread_args * restrict tArgs, size_t *numProducers, size_t *numConsumers);
+static void forkAndJoin(const size_t *numProducers, const size_t *numConsumers, pc_thread_args *tArgs);
+static void readLogFiles(register FILE *restrict producerLog, register FILE *restrict consumerLog);
 
 int main(int argc, char *argv[]){
-    unsigned numProducers = 0, numConsumers = 0;
     register FILE *producerLog, *consumerLog;//The addresses of these pointers themselves are never taken, so the use of the register keyword here is valid
     pc_thread_args * restrict tArgs;
+    size_t numProducers = 0, numConsumers = 0;
 
     if(argc != 5){//check for correct number of arguments
 	printf("Usage: %s <# producer threads> <#consumer threads> <buffer size> <# items to produce>\n", argv[0]);
@@ -70,38 +71,39 @@ int main(int argc, char *argv[]){
     readLogFiles(producerLog, consumerLog);
 }//main
 
-static void checkArguments(char *argv[], pc_thread_args * restrict tArgs, unsigned *numProducers, unsigned *numConsumers){
-    unsigned long argCheck;
-    int i;
+
+#define SIZE_T_MAX (size_t)-1
+static void checkArguments(char *argv[], pc_thread_args * restrict tArgs, size_t *numProducers, size_t *numConsumers){
 #ifdef SUPPORTS_RLIM
     struct rlimit rlim;
 #endif
-
+    size_t argCheck;
+    short i;
 
     for(i = 1; i < 5; ++i){//Ensure all provided arguments are valid
-	argCheck = strtoul(argv[i], NULL, 10);
-	if(argCheck == 0 || argCheck >= UINT_MAX){//makes sure that all arguments can safely be cast to unsigned integers
-	    printf("argument %u (\'%s\') not valid. Please provide a positive integer no greater than %u.\n",
-		    i, argv[i], UINT_MAX - 1);
+	argCheck = strtoumax(argv[i], NULL, 10);
+	if(argCheck == 0 || errno == ERANGE){
+	    printf("argument %u (\'%s\') not valid. Please provide a positive integer no greater than %zu.\n",
+		    i, argv[i], SIZE_T_MAX);
 	    printf("Usage: %s <# producer threads> <#consumer threads> <buffer size> <# items to produce>\n", argv[0]);
 	    exit(-1);
 	}
 	switch(i){
 	    case 1:
-		*numProducers = (unsigned)argCheck;
+		*numProducers = argCheck;
 		continue;
 	    case 2:
-		*numConsumers = (unsigned)argCheck;
+		*numConsumers = argCheck;
 		continue;
 	    case 3:
-		buffer = createQueue((unsigned)argCheck);
+		buffer = createQueue(argCheck);
 		if(buffer == NULL){
 		    printf("Failed to allocate memory for buffer.\n");
 		    exit(-1);
 		}
 		continue;
 	    case 4:
-		tArgs->target = (unsigned)argCheck;
+		tArgs->target = argCheck;
 	}
     }
 #ifdef SUPPORTS_RLIM
@@ -119,20 +121,24 @@ static void checkArguments(char *argv[], pc_thread_args * restrict tArgs, unsign
     tArgs->num_consumed = 0;
 }//checkArguments
 
-static void forkAndJoin(const unsigned *numProducers, const unsigned *numConsumers, pc_thread_args *tArgs){
-    unsigned i;
+static void forkAndJoin(const size_t *numProducers, const size_t *numConsumers, pc_thread_args *tArgs){
     pthread_mutex_t mutex;
     pthread_cond_t canProduce, canConsume;
-    pthread_t *producers, *consumers;
     pthread_attr_t tAttrs;//thread attributes
+    pthread_t *producers, *consumers;
+    size_t i;
 
 
 #ifdef __linux__//pthread_attr_init() always succeeds on Linux
     pthread_attr_init(&tAttrs);
+    pthread_attr_setstacksize(&tAttrs, 32768);//set minimum stack size for threads to 32 KiB
 #else
     if(pthread_attr_init(&tAttrs)){//pthread_attr_init() returns nozero on error
-	printf("Failed to initialize thread attributes.\n");
-	exit(-1);
+	printf("Failed to initialize thread attributes, proceeding with defaults.\n");
+	&tAttrs = NULL;
+    }
+    else{
+	pthread_attr_setstacksize(&tAttrs, 32768);//set minimum stack size for threads to 32 KiB
     }
 #endif
 
@@ -148,7 +154,6 @@ static void forkAndJoin(const unsigned *numProducers, const unsigned *numConsume
     tArgs->mutex = &mutex;
     tArgs->canConsume = &canConsume;
     tArgs->canProduce = &canProduce;
-    pthread_attr_setstacksize(&tAttrs, 32768);//set minimum stack size for threads to 32 KiB
 
     producers = calloc(*numProducers, sizeof(*producers));//See producer.c for the implementation of the producer function
     if(producers == NULL){//Check whether memory was allocated
@@ -175,7 +180,13 @@ static void forkAndJoin(const unsigned *numProducers, const unsigned *numConsume
 	    exit(-1);
 	}
     }
+#ifndef __linux__
+    if(&tAttrs != NULL)
+	pthread_attr_destroy(&tAttrs);
+#else
     pthread_attr_destroy(&tAttrs);
+#endif
+
 
     for(i = *numProducers; i; )
 	pthread_join(producers[--i], NULL);
@@ -197,7 +208,7 @@ static void forkAndJoin(const unsigned *numProducers, const unsigned *numConsume
     pthread_cond_destroy(&canConsume);
 
     printf("All threads finished.\n");
-    printf("Produced: %u\nConsumed: %u\n\n", tArgs->num_produced, tArgs->num_consumed);
+    printf("Produced: %zu\nConsumed: %zu\n\n", tArgs->num_produced, tArgs->num_consumed);
     free(tArgs);
     tArgs = NULL;
 }//forkAndJoin
@@ -211,10 +222,14 @@ static void readLogFiles(FILE *restrict producerLog, FILE *restrict consumerLog)
 
 #ifdef __linux__//pthread_attr_init() always succeeds on Linux
     pthread_attr_init(&tAttrs);
+    pthread_attr_setstacksize(&tAttrs, 32768);//set minimum stack size for threads to 32 KiB
 #else
     if(pthread_attr_init(&tAttrs)){//pthread_attr_init() returns nozero on error
-	printf("Failed to initialize thread attributes. Log files will not be read.\n");
-	 exit(-1);
+	printf("Failed to initialize thread attributes. Log files will be read in threads with default attributes.\n");
+	&tAttrs = NULL;
+    }
+    else{
+	pthread_attr_setstacksize(&tAttrs, 32768);//set minimum stack size for threads to 32 KiB
     }
 #endif
 
@@ -227,11 +242,14 @@ static void readLogFiles(FILE *restrict producerLog, FILE *restrict consumerLog)
     producerlog_args.producerLog = producerLog;
     consumerlog_args.consumerLog = consumerLog;
 
-    pthread_attr_setstacksize(&tAttrs, 32768);//set minimum stack size for threads to 32 KiB
-
     pthread_create(&producerlog_thread, &tAttrs, producer_log_reader, &producerlog_args);
     pthread_create(&consumerlog_thread, &tAttrs, consumer_log_reader, &consumerlog_args);
+#ifndef __linux__
+    if(&tAttrs != NULL)
+	pthread_attr_destroy(&tAttrs);
+#else
     pthread_attr_destroy(&tAttrs);
+#endif
 
     pthread_join(producerlog_thread, NULL);
     pthread_join(consumerlog_thread, NULL);
