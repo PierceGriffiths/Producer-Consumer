@@ -13,9 +13,9 @@ typedef struct{
     struct timespec ts;
 }pc_thread_args;
 
-typedef struct{
-    pthread_mutex_t * restrict mutex;
+typedef struct{\
     FILE * restrict producerLog;
+    pthread_mutex_t * restrict mutex;
     short ret;
 }producerlog_thread_args;
 

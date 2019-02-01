@@ -5,7 +5,7 @@
 #include "argstruct.h"
 
 //Global variables declared in producer-consumer.c
-extern Queue * restrict buffer;
+extern Queue * buffer;
 
 void* consumer(pc_thread_args *args){
     const register unsigned long id = pthread_self();
@@ -17,12 +17,12 @@ void* consumer(pc_thread_args *args){
 	    pthread_cond_wait(args->canConsume, args->mutex);
 	}
 	if(args->num_consumed == args->target){
-	    pthread_mutex_unlock(args->mutex);
 	    printf("Consumer thread %lu finished.\n", id);
+	    pthread_mutex_unlock(args->mutex);
 	    pthread_exit(NULL);
 	}
 	i = dequeue(buffer, &num);
-	args->num_consumed++;//Increment num_consumed by 1
+	++args->num_consumed;//Increment num_consumed by 1
 	if(args->consumerLog != NULL){
 	    clock_gettime(CLOCK_REALTIME, &args->ts);
 	    fprintf(args->consumerLog, "%ld Consumer %lu %u %u\n", args->ts.tv_nsec, id, i, num);

@@ -7,7 +7,7 @@ typedef struct{
 
 Queue* createQueue(const size_t capacity);
 
-void* deleteQueue(Queue * restrict q);
+void deleteQueue(Queue * restrict q);
 
 size_t enqueue(Queue * restrict q, unsigned const num);
 

@@ -17,11 +17,11 @@ Queue* createQueue(const size_t capacity){
     return q;
 }
 
-void* deleteQueue(Queue * restrict q){
+void deleteQueue(Queue * restrict q){
     free(q->array);
     q->array = NULL;
     free(q);
-    return NULL;
+    q = NULL;
 }
 
 size_t enqueue(Queue * restrict q, unsigned const num){
@@ -32,7 +32,7 @@ size_t enqueue(Queue * restrict q, unsigned const num){
 }
 
 size_t dequeue(Queue *restrict q, unsigned *restrict num){
-    unsigned index = q->front;
+    const register size_t index = q->front;
     *num = q->array[q->front];
     q->front = (q->front + 1) % q->capacity;
     --q->size;
