@@ -25,7 +25,11 @@ void* consumer(pc_thread_args *args){
 	++args->num_consumed;//Increment num_consumed by 1
 	if(args->consumerLog != NULL){
 	    clock_gettime(CLOCK_REALTIME, &args->ts);
-	    fprintf(args->consumerLog, "%ld Consumer %lu %u %u\n", args->ts.tv_nsec, id, i, num);
+	    //producer and consumer threads will only read from or write to charswritten during their critical section, 
+            //so there is no need for each thread to have its own copy of charswritten stored in memory
+	    args->charswritten = fprintf(args->consumerLog, "%ld Consumer %lu %u %u\n", args->ts.tv_nsec, id, i, num);
+	    if(args->charswritten > args->max_c_log_line)
+		args->max_c_log_line = args->charswritten;
 	}
 	printf("Consumer thread %lu consumed %u from index %u\n",
 		id, num, i);

@@ -37,15 +37,16 @@ Queue * buffer;
 
 static void checkArguments(char *argv[], pc_thread_args * restrict tArgs, size_t *numProducers, size_t *numConsumers);
 static void forkAndJoin(const size_t *restrict numProducers, const size_t *restrict numConsumers, pc_thread_args *tArgs);
-static void readLogFiles(register FILE *restrict producerLog, register FILE *restrict consumerLog);
+static void readLogFiles(register FILE *restrict producerLog, register FILE *restrict consumerLog, const int max_p_log_line, const int max_c_log_line);
 
 int main(int argc, char *argv[]){
-    register FILE *producerLog, *consumerLog;//The addresses of these pointers themselves are never taken, so the use of the register keyword here is valid
+    FILE *producerLog, *consumerLog;
     pc_thread_args * restrict tArgs;
     size_t numProducers = 0, numConsumers = 0;
+    int max_p_log_line, max_c_log_line;
 
     if(argc != 5){//check for correct number of arguments
-	printf("Usage: %s <# producer threads> <#consumer threads> <buffer size> <# items to produce>\n", argv[0]);
+	printf("Usage: %s <# producer threads> <# consumer threads> <buffer size> <# items to produce>\n", argv[0]);
 	return 1;
     }
 
@@ -68,7 +69,11 @@ int main(int argc, char *argv[]){
 	printf("Unable to open "CONSUMER_LOG_FILENAME" for writing. Proceeding without consumer event logging.\n");
 
     forkAndJoin(&numProducers, &numConsumers, tArgs);
-    readLogFiles(producerLog, consumerLog);
+    max_p_log_line = tArgs->max_p_log_line;
+    max_c_log_line = tArgs->max_c_log_line;
+    free(tArgs);
+    tArgs = NULL;
+    readLogFiles(producerLog, consumerLog, max_p_log_line, max_c_log_line);
 }//main
 
 
@@ -85,7 +90,7 @@ static void checkArguments(char *argv[], pc_thread_args * restrict tArgs, size_t
 	if(argCheck == 0 || errno == ERANGE){
 	    printf("argument %u (\'%s\') not valid. Please provide a positive integer no greater than %zu.\n",
 		    i, argv[i], SIZE_T_MAX);
-	    printf("Usage: %s <# producer threads> <#consumer threads> <buffer size> <# items to produce>\n", argv[0]);
+	    printf("Usage: %s <# producer threads> <# consumer threads> <buffer size> <# items to produce>\n", argv[0]);
 	    exit(1);
 	}
 	switch(i){
@@ -167,40 +172,96 @@ static void forkAndJoin(const size_t *restrict numProducers, const size_t *restr
 	exit(1);
     }
 
-    for(i = *numProducers; i; ){
-	if(pthread_create(&producers[--i], &tAttrs, producer, tArgs)){//Check for a nonzero return value, which indicates an error
-	    printf("Unable to create the requested number of threads.\n");
-	    exit(1);
-	}
-    }
+    tArgs->max_p_log_line = 0;
+    tArgs->max_c_log_line = 0;
+    if(*numProducers >= *numConsumers){
+	for(i = 0; i < *numConsumers; ++i){
+	    if(pthread_create(&producers[i], &tAttrs, producer, tArgs)){//Check for a nonzero return value, which indicates an error
+		printf("Unable to create the requested number of producer threads.\n");
+		exit(1);
+	    }
 
-    for(i = *numConsumers; i; ){
-	if(pthread_create(&consumers[--i], &tAttrs, consumer, tArgs)){//Check for a nonzero return value, which indicates an error
-	    printf("Failed to create the requested number of threads.\n");
-	    exit(1);
+	    if(pthread_create(&consumers[i], &tAttrs, consumer, tArgs)){//Check for a nonzero return value, which indicates an error
+		printf("Unable to create the requested number of consumer threads.\n");
+		exit(1);
+	    }
 	}
-    }
+	
+	for(; i < *numProducers; ++i){
+	    if(pthread_create(&producers[i], &tAttrs, producer, tArgs)){//Check for a nonzero return value, which indicates an error
+		printf("Unable to create the requested number of producer threads.\n");
+		exit(1);
+	    }
+	}
+	
 #ifndef __linux__
-    if(&tAttrs != NULL)
-	pthread_attr_destroy(&tAttrs);
+	if(&tAttrs != NULL)
+	    pthread_attr_destroy(&tAttrs);
 #else
-    pthread_attr_destroy(&tAttrs);
+	pthread_attr_destroy(&tAttrs);
 #endif
+	
+	
+	for(i = 0; i < *numConsumers; ++i){
+	    pthread_join(producers[i], NULL);
+	    pthread_join(consumers[i], NULL);
+	}
+	free(consumers);
+	
+	if(tArgs->consumerLog != NULL)
+	    fclose(tArgs->consumerLog);
+	
+	for(; i < *numProducers; ++i)
+	    pthread_join(producers[i], NULL);
+	free(producers);
+	
+	if(tArgs->producerLog != NULL)
+	    fclose(tArgs->producerLog);
+    }
+    else{
+	for(i = 0; i < *numProducers; ++i){
+	    if(pthread_create(&producers[i], &tAttrs, producer, tArgs)){//Check for a nonzero return value, which indicates an error
+		printf("Unable to create the requested number of producer threads.\n");
+		exit(1);
+	    }
 
+	    if(pthread_create(&consumers[i], &tAttrs, consumer, tArgs)){//Check for a nonzero return value, which indicates an error
+		printf("Unable to create the requested number of consumer threads.\n");
+		exit(1);
+	    }
+	}
+	
+	for(; i < *numConsumers; ++i){
+	    if(pthread_create(&consumers[i], &tAttrs, consumer, tArgs)){//Check for a nonzero return value, which indicates an error
+		printf("Unable to create the requested number of consumer threads.\n");
+		exit(1);
+	    }
+	}
+	
+#ifndef __linux__
+	if(&tAttrs != NULL)
+	    pthread_attr_destroy(&tAttrs);
+#else
+	pthread_attr_destroy(&tAttrs);
+#endif
+	
+	for(i = 0; i < *numProducers; ++i){
+	    pthread_join(producers[i], NULL);
+	    pthread_join(consumers[i], NULL);
+	}
+	free(producers);
+	
+	if(tArgs->producerLog != NULL)
+	    fclose(tArgs->producerLog);
+	
+	for(; i < *numConsumers; ++i)
+	    pthread_join(consumers[i], NULL);
+	free(consumers);
+	
+	if(tArgs->consumerLog != NULL)
+	    fclose(tArgs->consumerLog);
+    }//end of else
 
-    for(i = *numProducers; i; )
-	pthread_join(producers[--i], NULL);
-    free(producers);
-
-    if(tArgs->producerLog != NULL)
-	fclose(tArgs->producerLog);
-
-    for(i = *numConsumers; i; )
-	pthread_join(consumers[--i], NULL);
-    free(consumers);
-
-    if(tArgs->consumerLog != NULL)
-	fclose(tArgs->consumerLog);
 
     deleteQueue(buffer);//deleteQueue NULLs buffer
     pthread_mutex_destroy(&mutex);
@@ -209,11 +270,9 @@ static void forkAndJoin(const size_t *restrict numProducers, const size_t *restr
 
     printf("All threads finished.\n");
     printf("Produced: %zu\nConsumed: %zu\n\n", tArgs->num_produced, tArgs->num_consumed);
-    free(tArgs);
-    tArgs = NULL;
 }//forkAndJoin
 
-static void readLogFiles(FILE *restrict producerLog, FILE *restrict consumerLog){
+static void readLogFiles(FILE *restrict producerLog, FILE *restrict consumerLog, const int max_p_log_line, const int max_c_log_line){
     producerlog_thread_args producerlog_args;
     consumerlog_thread_args consumerlog_args;
     pthread_t producerlog_thread, consumerlog_thread;
@@ -241,6 +300,8 @@ static void readLogFiles(FILE *restrict producerLog, FILE *restrict consumerLog)
     consumerlog_args.mutex = &mutex;
     producerlog_args.producerLog = producerLog;
     consumerlog_args.consumerLog = consumerLog;
+    producerlog_args.max_log_line = max_p_log_line;
+    consumerlog_args.max_log_line = max_c_log_line;
 
     pthread_create(&producerlog_thread, &tAttrs, producer_log_reader, &producerlog_args);
     pthread_create(&consumerlog_thread, &tAttrs, consumer_log_reader, &consumerlog_args);

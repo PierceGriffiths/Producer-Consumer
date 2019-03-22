@@ -10,18 +10,22 @@ typedef struct{
     pthread_mutex_t * restrict mutex;
     pthread_cond_t * restrict canProduce, * restrict canConsume;
     size_t num_produced, num_consumed, target;
+    int max_p_log_line, max_c_log_line;
     struct timespec ts;
+    int charswritten;
 }pc_thread_args;
 
-typedef struct{\
+typedef struct{
     FILE * restrict producerLog;
     pthread_mutex_t * restrict mutex;
+    int max_log_line;
     short ret;
 }producerlog_thread_args;
 
 typedef struct{
     FILE  * restrict consumerLog;
     pthread_mutex_t * restrict mutex;
+    int max_log_line;
     short ret;
 }consumerlog_thread_args;
 #endif

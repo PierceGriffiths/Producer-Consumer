@@ -5,9 +5,10 @@
 
 void* producer_log_reader(producerlog_thread_args *args){
     char **restrict lineBuffer = NULL;
-    size_t lineBufferSize = 50;
+    //Use number of characters in longest line of the log file as the size of the line buffer
+    size_t lineBufferSize = args->max_log_line;
 
-    if(args->producerLog != NULL){
+    if(args->producerLog != NULL && lineBufferSize > 0){
 	lineBuffer = calloc(lineBufferSize, sizeof(**lineBuffer));
 	if(lineBuffer == NULL){
 	    args->ret = 1;
@@ -60,9 +61,10 @@ producer_log_exit:
 
 void* consumer_log_reader(consumerlog_thread_args *args){
     char **restrict lineBuffer = NULL;
-    size_t lineBufferSize = 50;
+    //Use number of characters in longest line of the log file as the size of the line buffer
+    size_t lineBufferSize = args->max_log_line;
 
-    if(args->consumerLog != NULL){
+    if(args->consumerLog != NULL && lineBufferSize > 0){
 	lineBuffer = calloc(lineBufferSize, sizeof(**lineBuffer));
 	if(lineBuffer == NULL){
 	    args->ret = 1;

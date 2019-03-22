@@ -28,7 +28,11 @@ void* producer(pc_thread_args *args){
 	if(args->producerLog != NULL){
 	    i = enqueue(buffer, num);//Place num at end of the buffer and get its index
 	    clock_gettime(CLOCK_REALTIME, &args->ts);
-	    fprintf(args->producerLog, "%ld Producer %lu %zu %u\n", args->ts.tv_nsec, id, i, num);
+	    //producer and consumer threads will only read from or write to charswritten during their critical section, 
+	    //so there is no need for each thread to have its own copy of charswritten stored in memory
+	    args->charswritten = fprintf(args->producerLog, "%ld Producer %lu %zu %u\n", args->ts.tv_nsec, id, i, num);
+	    if(args->charswritten > args->max_p_log_line)
+		args->max_p_log_line = args->charswritten;
 	    printf("Producer thread %lu produced %u and stored it at index %zu\n",
 		id, num, i);
 	}
