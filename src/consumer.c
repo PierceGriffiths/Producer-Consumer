@@ -8,7 +8,7 @@
 extern Queue * buffer;
 
 void* consumer(pc_thread_args *args){
-    const register unsigned long id = pthread_self();
+    const register pthread_t id = pthread_self();
     unsigned num, i;
     printf("Consumer thread %lu started.\n", id);
     while(args->num_consumed < args->target){

@@ -9,14 +9,13 @@
 extern Queue * buffer;
 
 void* producer(pc_thread_args *args){
-    const register unsigned long id = pthread_self();//Thread ID
-    unsigned register num;
+    const register pthread_t id = pthread_self();//Thread ID
+    int num;
     size_t i;
     printf("Producer thread %lu started.\n", id);
-    srand(time(NULL) + rand());
     while(args->num_produced < args->target){
-	num = rand();//Get random number
 	pthread_mutex_lock(args->mutex);//Lock buffer
+	num = rand();//Get random number
 	while(isFull(buffer)){//If buffer is full, unlock until something is consumed
 	    pthread_cond_wait(args->canProduce, args->mutex);
 	}

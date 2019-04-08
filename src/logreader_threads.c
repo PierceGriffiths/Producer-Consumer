@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include "macrodefs.h"
 #include "argstruct.h"
 
 void* producer_log_reader(producerlog_thread_args *args){
@@ -14,7 +15,7 @@ void* producer_log_reader(producerlog_thread_args *args){
 	    args->ret = 1;
 	    //Lock mutex before printing error messages to stdout to ensure that it isn't printed while the consumer log is being written to stdout
 	    pthread_mutex_lock(args->mutex);
-	    printf("Failed to allocate memory needed to read "PRODUCER_LOG_FILENAME"\n");
+	    fprintf(stderr, "Failed to allocate memory needed to read "PRODUCER_LOG_FILENAME"\n");
 	    goto producer_log_exit;
 	}
     }
@@ -30,7 +31,7 @@ void* producer_log_reader(producerlog_thread_args *args){
 	free(lineBuffer);
 	args->ret = 1;
 	pthread_mutex_lock(args->mutex);
-	printf("Unable to read from "PRODUCER_LOG_FILENAME"\n");
+	fprintf(stderr, "Unable to read from "PRODUCER_LOG_FILENAME"\n");
 	goto producer_log_exit;
     }
     else{
@@ -70,7 +71,7 @@ void* consumer_log_reader(consumerlog_thread_args *args){
 	    args->ret = 1;
 	    //Lock mutex before printing error messages to stdout to ensure that it isn't printed while the producer log is being written to stdout
 	    pthread_mutex_lock(args->mutex);
-	    printf("Failed to allocate memory needed to read "CONSUMER_LOG_FILENAME"\n");
+	    fprintf(stderr, "Failed to allocate memory needed to read "CONSUMER_LOG_FILENAME"\n");
 	    goto consumer_log_exit;
 	}
     }
@@ -86,7 +87,7 @@ void* consumer_log_reader(consumerlog_thread_args *args){
 	free(lineBuffer);
 	args->ret = 1;
 	pthread_mutex_lock(args->mutex);
-	printf("Unable to read from "CONSUMER_LOG_FILENAME"\n");
+	fprintf(stderr, "Unable to read from "CONSUMER_LOG_FILENAME"\n");
 	goto consumer_log_exit;
     }
     else{

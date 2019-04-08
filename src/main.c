@@ -1,29 +1,7 @@
 #define _GNU_SOURCE
 #define _FILE_OFFSET_BITS 64
 
-#if defined(__linux__)
-#define IS_POSIX
-#define SUPPORTS_RLIM
-#elif defined(__unix__)
-#define IS_POSIX
-#include <sys/param.h>
-#ifdef BSD
-#define SUPPORTS_RLIM
-#endif //#ifdef BSD
-#elif defined(__APPLE__) && defined(__MACH__)
-#define IS_POSIX
-#include <TargetConditionals.h>
-#if TARGET_OS_MAC == 1
-#define SUPPORTS_RLIM
-#endif //if TARGET_OS_MAC == 1
-#endif //if defined(__linux__)
-
-#ifndef IS_POSIX
-#warning "This program is not likely to be compatible with your operating system."
-#elif defined(SUPPORTS_RLIM)
-#include <sys/resource.h>
-#endif
-
+#include "macrodefs.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -43,7 +21,7 @@ int main(int argc, char *argv[]){
     FILE *producerLog, *consumerLog;
     pc_thread_args * restrict tArgs;
     size_t numProducers = 0, numConsumers = 0;
-    int max_p_log_line, max_c_log_line;
+    unsigned char max_p_log_line, max_c_log_line;
 
     if(argc != 5){//check for correct number of arguments
 	printf("Usage: %s <# producer threads> <# consumer threads> <buffer size> <# items to produce>\n", argv[0]);
@@ -52,7 +30,7 @@ int main(int argc, char *argv[]){
 
     tArgs = malloc(sizeof(*tArgs));
     if(tArgs == NULL){
-	printf("Failed to allocate memory for thread arguments.\n");
+	fprintf(stderr, "Failed to allocate memory for thread arguments.\n");
 	return 1;
     }
 
@@ -61,12 +39,12 @@ int main(int argc, char *argv[]){
     producerLog = fopen(PRODUCER_LOG_FILENAME, "w");
     tArgs->producerLog = producerLog;
     if(producerLog == NULL)
-	printf("Unable to open "PRODUCER_LOG_FILENAME" for writing. Proceeding without producer event logging.\n");
+	fprintf(stderr, "Unable to open "PRODUCER_LOG_FILENAME" for writing. Proceeding without producer event logging.\n");
 
     consumerLog = fopen(CONSUMER_LOG_FILENAME, "w");
     tArgs->consumerLog = consumerLog;
     if(consumerLog == NULL)
-	printf("Unable to open "CONSUMER_LOG_FILENAME" for writing. Proceeding without consumer event logging.\n");
+	fprintf(stderr, "Unable to open "CONSUMER_LOG_FILENAME" for writing. Proceeding without consumer event logging.\n");
 
     forkAndJoin(&numProducers, &numConsumers, tArgs);
     max_p_log_line = tArgs->max_p_log_line;
@@ -77,19 +55,18 @@ int main(int argc, char *argv[]){
 }//main
 
 
-#define SIZE_T_MAX (size_t)-1
 static void checkArguments(char *argv[], pc_thread_args * restrict tArgs, size_t *numProducers, size_t *numConsumers){
 #ifdef SUPPORTS_RLIM
     struct rlimit rlim;
 #endif
     size_t argCheck;
-    short i;
+    unsigned char i;
 
     for(i = 1; i < 5; ++i){//Ensure all provided arguments are valid
 	argCheck = strtoumax(argv[i], NULL, 10);
 	if(argCheck == 0 || errno == ERANGE){
-	    printf("argument %u (\'%s\') not valid. Please provide a positive integer no greater than %zu.\n",
-		    i, argv[i], SIZE_T_MAX);
+	    fprintf(stderr, "argument %u (\'%s\') not valid. Please provide a positive integer no greater than %zu.\n",
+		    i, argv[i], SIZE_MAX);
 	    printf("Usage: %s <# producer threads> <# consumer threads> <buffer size> <# items to produce>\n", argv[0]);
 	    exit(1);
 	}
@@ -103,7 +80,7 @@ static void checkArguments(char *argv[], pc_thread_args * restrict tArgs, size_t
 	    case 3:
 		buffer = createQueue(argCheck);
 		if(buffer == NULL){
-		    printf("Failed to allocate memory for buffer.\n");
+		    fprintf(stderr, "Failed to allocate memory for buffer.\n");
 		    exit(1);
 		}
 		continue;
@@ -114,7 +91,7 @@ static void checkArguments(char *argv[], pc_thread_args * restrict tArgs, size_t
 #ifdef SUPPORTS_RLIM
     prlimit(0, RLIMIT_NPROC, NULL, &rlim);//Stores the soft and hard limits for the number of threads that the invoking user is permitted to have running
     if(*numProducers + *numConsumers >= rlim.rlim_max){//If the total number of threads the user requested exceeds the hard limit, don't bother going any further
-	printf("The number of threads you wish to create exceeds the hard limit for the number of threads that can be created by the current user.\n");
+	fprintf(stderr, "The number of threads you wish to create exceeds the hard limit for the number of threads that can be created by the current user.\n");
 	exit(1);
     }
     else if(*numProducers + *numConsumers > rlim.rlim_cur ){//Check if the soft limit should be increased
@@ -139,7 +116,7 @@ static void forkAndJoin(const size_t *restrict numProducers, const size_t *restr
     pthread_attr_setstacksize(&tAttrs, 32768);//set minimum stack size for threads to 32 KiB
 #else
     if(pthread_attr_init(&tAttrs)){//pthread_attr_init() returns nozero on error
-	printf("Failed to initialize thread attributes, proceeding with defaults.\n");
+	fprintf(stderr, "Failed to initialize thread attributes, proceeding with defaults.\n");
 	&tAttrs = NULL;
     }
     else{
@@ -148,12 +125,12 @@ static void forkAndJoin(const size_t *restrict numProducers, const size_t *restr
 #endif
 
     if(pthread_mutex_init(&mutex, NULL)){//pthread_mutex_init() returns a nonzero int upon failure
-	printf("Failed to initialize mutex.\n");
+	fprintf(stderr, "Failed to initialize mutex.\n");
 	exit(1);
     }
 
     if(pthread_cond_init(&canProduce, NULL) || pthread_cond_init(&canConsume, NULL)){//pthread_cond_init() returns a nonzero int upon failure
-	printf("Failed to initialize condition variables.\n");
+	fprintf(stderr, "Failed to initialize condition variables.\n");
 	exit(1);
     }
     tArgs->mutex = &mutex;
@@ -162,34 +139,35 @@ static void forkAndJoin(const size_t *restrict numProducers, const size_t *restr
 
     producers = calloc(*numProducers, sizeof(*producers));//See producer.c for the implementation of the producer function
     if(producers == NULL){//Check whether memory was allocated
-	printf("Failed to allocate memory for producer threads.\n");
+	fprintf(stderr, "Failed to allocate memory for producer threads.\n");
 	exit(1);
     }
 
     consumers = calloc(*numConsumers, sizeof(*consumers));//See consumer.c for the implementation of the consumer function
     if(consumers == NULL){
-	printf("Failed to allocate memory for consumer threads.\n");
+	fprintf(stderr, "Failed to allocate memory for consumer threads.\n");
 	exit(1);
     }
-
+    
+    srand(time(NULL));
     tArgs->max_p_log_line = 0;
     tArgs->max_c_log_line = 0;
     if(*numProducers >= *numConsumers){
 	for(i = 0; i < *numConsumers; ++i){
 	    if(pthread_create(&producers[i], &tAttrs, producer, tArgs)){//Check for a nonzero return value, which indicates an error
-		printf("Unable to create the requested number of producer threads.\n");
+		fprintf(stderr, "Unable to create the requested number of producer threads.\n");
 		exit(1);
 	    }
 
 	    if(pthread_create(&consumers[i], &tAttrs, consumer, tArgs)){//Check for a nonzero return value, which indicates an error
-		printf("Unable to create the requested number of consumer threads.\n");
+		fprintf(stderr, "Unable to create the requested number of consumer threads.\n");
 		exit(1);
 	    }
 	}
 	
 	for(; i < *numProducers; ++i){
 	    if(pthread_create(&producers[i], &tAttrs, producer, tArgs)){//Check for a nonzero return value, which indicates an error
-		printf("Unable to create the requested number of producer threads.\n");
+		fprintf(stderr, "Unable to create the requested number of producer threads.\n");
 		exit(1);
 	    }
 	}
@@ -221,19 +199,19 @@ static void forkAndJoin(const size_t *restrict numProducers, const size_t *restr
     else{
 	for(i = 0; i < *numProducers; ++i){
 	    if(pthread_create(&producers[i], &tAttrs, producer, tArgs)){//Check for a nonzero return value, which indicates an error
-		printf("Unable to create the requested number of producer threads.\n");
+		fprintf(stderr, "Unable to create the requested number of producer threads.\n");
 		exit(1);
 	    }
 
 	    if(pthread_create(&consumers[i], &tAttrs, consumer, tArgs)){//Check for a nonzero return value, which indicates an error
-		printf("Unable to create the requested number of consumer threads.\n");
+		fprintf(stderr, "Unable to create the requested number of consumer threads.\n");
 		exit(1);
 	    }
 	}
 	
 	for(; i < *numConsumers; ++i){
 	    if(pthread_create(&consumers[i], &tAttrs, consumer, tArgs)){//Check for a nonzero return value, which indicates an error
-		printf("Unable to create the requested number of consumer threads.\n");
+		fprintf(stderr, "Unable to create the requested number of consumer threads.\n");
 		exit(1);
 	    }
 	}
@@ -284,7 +262,7 @@ static void readLogFiles(FILE *restrict producerLog, FILE *restrict consumerLog,
     pthread_attr_setstacksize(&tAttrs, 32768);//set minimum stack size for threads to 32 KiB
 #else
     if(pthread_attr_init(&tAttrs)){//pthread_attr_init() returns nozero on error
-	printf("Failed to initialize thread attributes. Log files will be read in threads with default attributes.\n");
+	fprintf(stderr, "Failed to initialize thread attributes. Log files will be read in threads with default attributes.\n");
 	&tAttrs = NULL;
     }
     else{
@@ -293,7 +271,7 @@ static void readLogFiles(FILE *restrict producerLog, FILE *restrict consumerLog,
 #endif
 
     if(pthread_mutex_init(&mutex, NULL)){//pthread_mutex_init() returns a nonzero int upon failure
-	printf("Failed to initialize mutex. Log files will not be read.\n");
+	fprintf(stderr, "Failed to initialize mutex. Log files will not be read.\n");
 	exit(1);
     }
     producerlog_args.mutex = &mutex;
