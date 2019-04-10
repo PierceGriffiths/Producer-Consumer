@@ -9,10 +9,10 @@ Queue* createQueue(const size_t capacity){
 	    free(q);
 	    return NULL;
 	}
-	q->front = 0;
-	q->back = capacity - 1;
-	q->size = 0;
 	q->capacity = capacity;
+	q->back = capacity - 1;
+	q->front = 0;
+	q->size = 0;
     }
     return q;
 }
@@ -24,15 +24,15 @@ void deleteQueue(Queue * restrict q){
     q = NULL;
 }
 
-size_t enqueue(Queue * restrict q, unsigned const num){
+size_t enqueue(Queue * restrict q, const long num){
     q->back = (q->back + 1)%q->capacity;
     q->array[q->back] = num;
     ++q->size;
     return q->back;
 }
 
-size_t dequeue(Queue *restrict q, unsigned *restrict num){
-    const register size_t index = q->front;
+size_t dequeue(Queue *restrict q, long *const num){
+    const size_t index = q->front;
     *num = q->array[q->front];
     q->front = (q->front + 1) % q->capacity;
     --q->size;

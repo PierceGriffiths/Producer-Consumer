@@ -8,8 +8,8 @@ void* producer_log_reader(producerlog_thread_args *args){
     char **restrict lineBuffer = NULL;
     //Use number of characters in longest line of the log file as the size of the line buffer
     size_t lineBufferSize = args->max_log_line;
-
-    if(args->producerLog != NULL && lineBufferSize > 0){
+    FILE *producerLog;
+    if(lineBufferSize > 0){
 	lineBuffer = calloc(lineBufferSize, sizeof(**lineBuffer));
 	if(lineBuffer == NULL){
 	    args->ret = 1;
@@ -25,9 +25,9 @@ void* producer_log_reader(producerlog_thread_args *args){
 	printf(PRODUCER_LOG_FILENAME" was not written to, so it will not be read\n");
 	goto producer_log_exit;
     }
-    args->producerLog = fopen(PRODUCER_LOG_FILENAME, "r");
+    producerLog = fopen(PRODUCER_LOG_FILENAME, "r");
 
-    if(args->producerLog == NULL){
+    if(producerLog == NULL){
 	free(lineBuffer);
 	args->ret = 1;
 	pthread_mutex_lock(args->mutex);
@@ -35,8 +35,8 @@ void* producer_log_reader(producerlog_thread_args *args){
 	goto producer_log_exit;
     }
     else{
-	if(getline(lineBuffer, &lineBufferSize, args->producerLog) == -1){
-	    fclose(args->producerLog);
+	if(getline(lineBuffer, &lineBufferSize, producerLog) == -1){
+	    fclose(producerLog);
 	    free(lineBuffer);
 	    args->ret = 1;
 	    pthread_mutex_lock(args->mutex);
@@ -48,9 +48,9 @@ void* producer_log_reader(producerlog_thread_args *args){
 	do{
 	    printf("%s", *lineBuffer);
 	}
-	while(getline(lineBuffer, &lineBufferSize, args->producerLog) != -1);
+	while(getline(lineBuffer, &lineBufferSize, producerLog) != -1);
 
-	fclose(args->producerLog);
+	fclose(producerLog);
 	free(lineBuffer);
 	printf("End of "PRODUCER_LOG_FILENAME"\n\n");
     }
@@ -64,8 +64,9 @@ void* consumer_log_reader(consumerlog_thread_args *args){
     char **restrict lineBuffer = NULL;
     //Use number of characters in longest line of the log file as the size of the line buffer
     size_t lineBufferSize = args->max_log_line;
-
-    if(args->consumerLog != NULL && lineBufferSize > 0){
+    FILE *consumerLog;
+    
+    if(lineBufferSize > 0){
 	lineBuffer = calloc(lineBufferSize, sizeof(**lineBuffer));
 	if(lineBuffer == NULL){
 	    args->ret = 1;
@@ -81,9 +82,9 @@ void* consumer_log_reader(consumerlog_thread_args *args){
 	printf(CONSUMER_LOG_FILENAME" was not written to, so it will not be read\n");
 	goto consumer_log_exit;
     }
-    args->consumerLog = fopen(CONSUMER_LOG_FILENAME, "r");
+    consumerLog = fopen(CONSUMER_LOG_FILENAME, "r");
 
-    if(args->consumerLog == NULL){
+    if(consumerLog == NULL){
 	free(lineBuffer);
 	args->ret = 1;
 	pthread_mutex_lock(args->mutex);
@@ -91,8 +92,8 @@ void* consumer_log_reader(consumerlog_thread_args *args){
 	goto consumer_log_exit;
     }
     else{
-	if(getline(lineBuffer, &lineBufferSize, args->consumerLog) == -1){
-	    fclose(args->consumerLog);
+	if(getline(lineBuffer, &lineBufferSize, consumerLog) == -1){
+	    fclose(consumerLog);
 	    free(lineBuffer);
 	    args->ret = 1;
 	    pthread_mutex_lock(args->mutex);
@@ -104,9 +105,9 @@ void* consumer_log_reader(consumerlog_thread_args *args){
 	do{
 	    printf("%s", *lineBuffer);
 	}
-	while(getline(lineBuffer, &lineBufferSize, args->consumerLog) != -1);
+	while(getline(lineBuffer, &lineBufferSize, consumerLog) != -1);
 
-	fclose(args->consumerLog);
+	fclose(consumerLog);
 	free(lineBuffer);
 	printf("End of "CONSUMER_LOG_FILENAME"\n\n");
     }
