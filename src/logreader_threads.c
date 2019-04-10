@@ -4,7 +4,7 @@
 #include "macrodefs.h"
 #include "argstruct.h"
 
-void* producer_log_reader(producerlog_thread_args *args){
+void* producer_log_reader(struct producerlog_thread_args *const args){
     char **restrict lineBuffer = NULL;
     //Use number of characters in longest line of the log file as the size of the line buffer
     size_t lineBufferSize = args->max_log_line;
@@ -60,7 +60,7 @@ producer_log_exit:
     pthread_exit(NULL);
 }
 
-void* consumer_log_reader(consumerlog_thread_args *args){
+void* consumer_log_reader(struct consumerlog_thread_args *const args){
     char **restrict lineBuffer = NULL;
     //Use number of characters in longest line of the log file as the size of the line buffer
     size_t lineBufferSize = args->max_log_line;

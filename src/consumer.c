@@ -1,3 +1,4 @@
+#define _GNU_SOURCE
 #ifdef __linux__
 #include <unistd.h>
 #include <sys/types.h>
@@ -14,13 +15,12 @@
 #include "macrodefs.h"
 
 //Global variables declared in main.c
-extern Queue * buffer;
+extern struct Queue * buffer;
 
-void* consumer(pc_thread_args *const args){
-#ifdef SYS_gettid
+void* consumer(struct pc_thread_args *const args){
+#ifdef __linux__
     const register pid_t thread_id = syscall(SYS_gettid);//get thread ID 
 #else
-#define ID_FORMAT "llu"
     const register unsigned long long = (unsigned long long)pthread_self();
 #endif
     int charswritten;

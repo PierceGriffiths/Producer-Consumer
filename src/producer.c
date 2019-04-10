@@ -16,9 +16,9 @@
 #include "macrodefs.h"
 
 //Global variables declared in main.c
-extern Queue * buffer;
+extern struct Queue * buffer;
 
-void* producer(pc_thread_args *const args){
+void* producer(struct pc_thread_args *const args){
 #ifdef __linux__
     const register pid_t thread_id = syscall(SYS_gettid);//get thread ID
 #else

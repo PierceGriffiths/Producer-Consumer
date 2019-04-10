@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include "queue.h"
 
-Queue* createQueue(const size_t capacity){
-    Queue *q = malloc(sizeof(*q));
+struct Queue* createQueue(const size_t capacity){
+    struct Queue *q = malloc(sizeof(*q));
     if(q != NULL){
 	q->array = calloc(capacity, sizeof(*q->array));//Only need to allocate memory on queue creation, whereas using a linked list would require allocation on every enqueue
 	if(q->array == NULL){
@@ -17,21 +17,21 @@ Queue* createQueue(const size_t capacity){
     return q;
 }
 
-void deleteQueue(Queue * restrict q){
+void deleteQueue(struct Queue * restrict q){
     free(q->array);
     q->array = NULL;
     free(q);
     q = NULL;
 }
 
-size_t enqueue(Queue * restrict q, const long num){
+size_t enqueue(struct Queue * restrict q, const long num){
     q->back = (q->back + 1)%q->capacity;
     q->array[q->back] = num;
     ++q->size;
     return q->back;
 }
 
-size_t dequeue(Queue *restrict q, long *const num){
+size_t dequeue(struct Queue *restrict q, long *const num){
     const size_t index = q->front;
     *num = q->array[q->front];
     q->front = (q->front + 1) % q->capacity;

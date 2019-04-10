@@ -1,5 +1,5 @@
 #define _GNU_SOURCE
-#define _FILE_OFFSET_BITS 64
+//#define _FILE_OFFSET_BITS 64
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,16 +10,16 @@
 #include "threaded_functions.h"
 #include "argstruct.h"
 
-Queue * buffer;
+struct Queue * buffer;
 
-static pc_thread_args *const checkArguments(const char *restrict argv[], size_t *numProducers, size_t *numConsumers);
-static unsigned char forkAndJoin(const size_t numProducers, const size_t numConsumers, pc_thread_args *const tArgs);
+static struct pc_thread_args *const checkArguments(const char *restrict argv[], size_t *numProducers, size_t *numConsumers);
+static unsigned char forkAndJoin(const size_t numProducers, const size_t numConsumers, struct pc_thread_args *const tArgs);
 static unsigned char readLogFiles(const int max_p_log_line, const int max_c_log_line);
 
 int main(int argc, const char *argv[]){
     size_t numProducers = 0, numConsumers = 0;
     int max_p_log_line, max_c_log_line;
-    pc_thread_args *tArgs; 
+    struct pc_thread_args *tArgs; 
 
     if(argc != 5){//check for correct number of arguments
 	printf("Usage: %s <# producer threads> <# consumer threads> <buffer size> <# items to produce>\n", argv[0]);
@@ -46,11 +46,11 @@ int main(int argc, const char *argv[]){
 }//main
 
 
-static pc_thread_args *const checkArguments(const char *restrict argv[], size_t *numProducers, size_t *numConsumers){
+static struct pc_thread_args *const checkArguments(const char *restrict argv[], size_t *numProducers, size_t *numConsumers){
 #ifdef SUPPORTS_RLIM
     struct rlimit rlim;
 #endif
-    pc_thread_args *tArgs = NULL;
+    struct pc_thread_args *tArgs = NULL;
     size_t argCheck;
     unsigned char i;
 
@@ -102,7 +102,7 @@ static pc_thread_args *const checkArguments(const char *restrict argv[], size_t 
     return tArgs;
 }//checkArguments
 
-static unsigned char forkAndJoin(const size_t numProducers, const size_t numConsumers, pc_thread_args *const tArgs){
+static unsigned char forkAndJoin(const size_t numProducers, const size_t numConsumers, struct pc_thread_args *const tArgs){
     pthread_mutex_t mutex;
     pthread_cond_t canProduce, canConsume;
     pthread_attr_t tAttrs;//thread attributes
@@ -257,8 +257,8 @@ static unsigned char forkAndJoin(const size_t numProducers, const size_t numCons
 }//forkAndJoin
 
 static unsigned char readLogFiles(const int max_p_log_line, const int max_c_log_line){
-    producerlog_thread_args producerlog_args;
-    consumerlog_thread_args consumerlog_args;
+    struct producerlog_thread_args producerlog_args;
+    struct consumerlog_thread_args consumerlog_args;
     pthread_t producerlog_thread, consumerlog_thread;
     pthread_mutex_t mutex;
     pthread_attr_t tAttrs;//thread attributes
