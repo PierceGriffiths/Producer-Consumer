@@ -1,13 +1,12 @@
-SHELL := /bin/bash
 CC=gcc
 CFLAGS= -march='native' -std=gnu11 -pedantic -I$(IDIR) -Wall
 SDIR=./src
 IDIR=$(SDIR)/include
 LIBS=-lpthread
-ifneq ($(MAKECMDGOALS),debug)
+ODIR=$(SDIR)/obj
+ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),release producer-consumer))
     CFLAGS += -O3
-    ODIR=$(SDIR)/obj
-else
+else ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),debug producer-consumer-debug))
     CFLAGS += -Og -g -pg
     ODIR=$(SDIR)/obj/debug
 endif
@@ -24,14 +23,20 @@ $(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 	fi;				
 	$(CC) $(CFLAGS) -c -o $@ $<
 
+.PHONY: release debug cleanobj cleanall
+
+release: producer-consumer
+
+debug: producer-consumer-debug
 
 producer-consumer: $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-debug: $(OBJ)
-	$(CC) $(CFLAGS) -o debug-pc $^ $(LIBS)
+producer-consumer-debug: $(OBJ)
+	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
-.PHONY: clean
-
-clean:
+cleanobj:
 	rm -f $(ODIR)/*.o $(ODIR)/debug/*.o *~ core $(INCDIR)/*~
+
+cleanall: cleanobj
+	rm -f producer-consumer producer-consumer-debug

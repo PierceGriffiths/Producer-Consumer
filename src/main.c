@@ -4,7 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include <stdint.h>
+#include <inttypes.h>
+#include <errno.h>
 #include "macrodefs.h"
 #include "queue.h"
 #include "threaded_functions.h"
@@ -55,7 +56,9 @@ static struct pc_thread_args *const checkArguments(const char *restrict argv[], 
     unsigned char i;
 
     for(i = 1; i < 5; ++i){//Ensure all provided arguments are valid
-	if(!sscanf(argv[i], "%zu", &argCheck) || argCheck == 0){
+	errno = 0;
+	argCheck = strtoumax(argv[i], NULL, 10);
+	if(errno == ERANGE || argCheck == 0){
 	    fprintf(stderr, "argument %u (\'%s\') not valid. Please provide a positive integer no greater than %zu.\n",
 		    i, argv[i], SIZE_MAX);
 	    printf("Usage: %s <# producer threads> <# consumer threads> <buffer size> <# items to produce>\n", argv[0]);
@@ -92,7 +95,7 @@ static struct pc_thread_args *const checkArguments(const char *restrict argv[], 
 	fprintf(stderr, "The number of threads you wish to create exceeds the hard limit for the number of threads that can be created by the current user.\n");
 	return NULL;
     }
-    else if(*numProducers + *numConsumers > rlim.rlim_cur ){//Check if the soft limit should be increased
+    else if(*numProducers + *numConsumers > rlim.rlim_cur){//Check if the soft limit should be increased
 	rlim.rlim_cur = rlim.rlim_max;
 	prlimit(0, RLIMIT_NPROC, &rlim, NULL);
     }

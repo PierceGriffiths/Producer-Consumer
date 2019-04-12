@@ -2,6 +2,6 @@ gmon.out
 producer-event.log
 consumer-event.log
 producer-consumer
-debug-pc
+producer-consumer-debug
 src/obj/
 src/obj/debug/
