@@ -1,5 +1,4 @@
 #define _GNU_SOURCE
-//#define _FILE_OFFSET_BITS 64
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,7 +22,7 @@ int main(int argc, const char *argv[]){
     struct pc_thread_args *tArgs; 
 
     if(argc != 5){//check for correct number of arguments
-	printf("Usage: %s <# producer threads> <# consumer threads> <buffer size> <# items to produce>\n", argv[0]);
+	printf("Usage: %s <# producer threads> <# consumer threads> <buffer capacity> <# items to produce>\n", argv[0]);
 	return 1;
     }
     
@@ -39,7 +38,8 @@ int main(int argc, const char *argv[]){
     if(tArgs->consumerLog == NULL)
 	fprintf(stderr, "Unable to open "CONSUMER_LOG_FILENAME" for writing. Proceeding without consumer event logging.\n");
 
-    forkAndJoin(numProducers, numConsumers, tArgs);
+    if(forkAndJoin(numProducers, numConsumers, tArgs))
+	return EXIT_FAILURE;
     max_p_log_line = tArgs->max_p_log_line;
     max_c_log_line = tArgs->max_c_log_line;
     free(tArgs);
@@ -56,12 +56,15 @@ static struct pc_thread_args *const checkArguments(const char *restrict argv[], 
     unsigned char i;
 
     for(i = 1; i < 5; ++i){//Ensure all provided arguments are valid
+	if(argv[i][0] == '-')
+	    goto invalidarg;
 	errno = 0;
 	argCheck = strtoumax(argv[i], NULL, 10);
 	if(errno == ERANGE || argCheck == 0){
-	    fprintf(stderr, "argument %u (\'%s\') not valid. Please provide a positive integer no greater than %zu.\n",
+invalidarg:
+	    fprintf(stderr, "Argument %u (\'%s\') not valid. Please provide a positive integer no greater than %zu.\n",
 		    i, argv[i], SIZE_MAX);
-	    printf("Usage: %s <# producer threads> <# consumer threads> <buffer size> <# items to produce>\n", argv[0]);
+	    printf("Usage: %s <# producer threads> <# consumer threads> <buffer capacity> <# items to produce>\n", argv[0]);
 	    return NULL;
 	}
 	switch(i){
