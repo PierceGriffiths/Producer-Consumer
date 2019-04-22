@@ -11,10 +11,12 @@ else ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),debug producer-consumer-debu
     ODIR := $(SDIR)/obj/debug
 endif
 
+DEPS := $(wildcard $(IDIR)/*.h)
+
 _OBJ := $(patsubst %.c, %.o, $(notdir $(wildcard $(SDIR)/*.c)))
 OBJ := $(patsubst %, $(ODIR)/%, $(_OBJ))
 
-$(ODIR)/%.o: $(SDIR)/%.c
+$(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
 	@if [ ! -d "$(ODIR)" ]; then	\
 	    mkdir -p $(ODIR);		\
 	fi;				
