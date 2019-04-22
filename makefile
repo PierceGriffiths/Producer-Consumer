@@ -1,23 +1,20 @@
-CC=gcc
-CFLAGS= -march='native' -std=gnu11 -pedantic -I$(IDIR) -Wall
-SDIR=./src
-IDIR=$(SDIR)/include
-LIBS=-lpthread
-ODIR=$(SDIR)/obj
+CC := gcc
+SDIR := ./src
+IDIR := $(SDIR)/include
+CFLAGS := -march='native' -std=gnu11 -pedantic -I$(IDIR) -Wall
+LIBS := -lpthread
+ODIR := $(SDIR)/obj
 ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),release producer-consumer))
-    CFLAGS += -O3
+    CFLAGS := $(CFLAGS) -O3
 else ifeq ($(MAKECMDGOALS),$(filter $(MAKECMDGOALS),debug producer-consumer-debug))
-    CFLAGS += -Og -g -pg
-    ODIR=$(SDIR)/obj/debug
+    CFLAGS := $(CFLAGS) -Og -g -pg
+    ODIR := $(SDIR)/obj/debug
 endif
 
-_DEPS = macrodefs.h queue.h threaded_functions.h argstruct.h
-DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
+_OBJ := $(patsubst %.c, %.o, $(notdir $(wildcard $(SDIR)/*.c)))
+OBJ := $(patsubst %, $(ODIR)/%, $(_OBJ))
 
-_OBJ = queue.o producer.o consumer.o logreader_threads.o main.o
-OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
-
-$(ODIR)/%.o: $(SDIR)/%.c $(DEPS)
+$(ODIR)/%.o: $(SDIR)/%.c
 	@if [ ! -d "$(ODIR)" ]; then	\
 	    mkdir -p $(ODIR);		\
 	fi;				
@@ -36,7 +33,7 @@ producer-consumer-debug: $(OBJ)
 	$(CC) $(CFLAGS) -o $@ $^ $(LIBS)
 
 cleanobj:
-	rm -f $(ODIR)/*.o $(ODIR)/debug/*.o *~ core $(INCDIR)/*~
+	rm -f $(ODIR)/*.o $(ODIR)/debug/*.o *~ core $(IDIR)/*~
 
 cleanall: cleanobj
 	rm -f producer-consumer producer-consumer-debug
