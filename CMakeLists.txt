@@ -6,7 +6,11 @@ ENDIF(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_FLAGS "-march='native' -Wall -pedantic")
+IF(MSVC)
+    add_compile_options("/Wall" "/O2")
+ELSE()
+    add_compile_options("-march=native" "-O3" "-Wall" "-pedantic")
+ENDIF()
 
 add_executable(producer-consumer src/main.c src/queue.c src/producer.c src/consumer.c src/logreader_threads.c)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
