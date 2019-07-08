@@ -7,7 +7,8 @@ This program creates "w" producer threads, "x" consumer threads, a shared buffer
 A C++ version, [Producer-Consumer++](https://github.com/PierceGriffiths/Producer-Consumer-Plus-Plus), also exists.
 
 ### How to compile
-`cmake . && make`
+`cmake . && make` will compile a release build
+`cmake -DCMAKE_BUILD_TYPE=Debug . && make` will compile a debug build
 
 ### How to run
 `./producer-consumer <# producer threads> <# consumer threads> <buffer capacity> <# items to be produced>`
