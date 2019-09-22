@@ -22,7 +22,7 @@ void* producer(struct pc_thread_args *const args){
 #ifdef __linux__
     const register pid_t thread_id = syscall(SYS_gettid);//get thread ID
 #else
-    const register unsigned long long = (unsigned long long)pthread_self();
+    const register unsigned long long thread_id = (unsigned long long)pthread_self();
 #endif
     int charswritten;
     long num;
