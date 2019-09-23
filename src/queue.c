@@ -1,10 +1,10 @@
-#include <stdlib.h>
 #include "queue.h"
+#include <stdlib.h>
 
 struct Queue* createQueue(const size_t capacity){
-	struct Queue *q = malloc(sizeof(*q));
+	struct Queue *q = malloc(sizeof *q);
 	if(q != NULL){
-		q->array = calloc(capacity, sizeof(*q->array));//Only need to allocate memory on queue creation, whereas using a linked list would require allocation on every enqueue
+		q->array = calloc(capacity, sizeof *q->array);//Only need to allocate memory on queue creation, whereas using a linked list would require allocation on every enqueue
 		if(q->array == NULL){
 			free(q);
 			return NULL;

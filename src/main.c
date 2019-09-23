@@ -12,7 +12,7 @@
 
 struct Queue * buffer;
 
-struct pc_thread_args *const checkArguments(const char *restrict argv[], size_t *numProducers, size_t *numConsumers);
+struct pc_thread_args* checkArguments(const char *restrict argv[], size_t *numProducers, size_t *numConsumers);
 unsigned char forkAndJoin(const size_t numProducers, const size_t numConsumers, struct pc_thread_args *const tArgs);
 unsigned char readLogFiles(const int max_p_log_line, const int max_c_log_line);
 
@@ -45,7 +45,7 @@ int main(int argc, const char *argv[]){
 }//main
 
 
-struct pc_thread_args *const checkArguments(const char *restrict argv[], size_t *numProducers, size_t *numConsumers){
+struct pc_thread_args* checkArguments(const char *restrict argv[], size_t *numProducers, size_t *numConsumers){
 #ifdef SUPPORTS_RLIM
 	struct rlimit rlim;
 #endif
@@ -249,8 +249,7 @@ unsigned char forkAndJoin(const size_t numProducers, const size_t numConsumers, 
 }//forkAndJoin
 
 unsigned char readLogFiles(const int max_p_log_line, const int max_c_log_line){
-	struct producerlog_thread_args producerlog_args;
-	struct consumerlog_thread_args consumerlog_args;
+	struct log_thread_args producerlog_args, consumerlog_args;
 	pthread_t producerlog_thread, consumerlog_thread;
 	pthread_mutex_t *mutex = malloc(sizeof *mutex);
 	pthread_attr_t *tAttrs = malloc(sizeof *tAttrs);

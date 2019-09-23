@@ -1,16 +1,16 @@
+#include "macrodefs.h"
+#include "argstruct.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
-#include "macrodefs.h"
-#include "argstruct.h"
 
-void* producer_log_reader(struct producerlog_thread_args *const args){
+void* producer_log_reader(struct log_thread_args *const args){
 	char **restrict lineBuffer = NULL;
 	//Use number of characters in longest line of the log file as the size of the line buffer
 	size_t lineBufferSize = args->max_log_line;
 	FILE *producerLog;
 	if(lineBufferSize > 0){
-		lineBuffer = calloc(lineBufferSize, sizeof(**lineBuffer));
+		lineBuffer = calloc(lineBufferSize, sizeof **lineBuffer);
 		if(lineBuffer == NULL){
 			args->ret = 1;
 			//Lock mutex before printing error messages to stdout to ensure that it isn't printed while the consumer log is being written to stdout
@@ -60,14 +60,14 @@ producer_log_exit:
 	pthread_exit(NULL);
 }
 
-void* consumer_log_reader(struct consumerlog_thread_args *const args){
+void* consumer_log_reader(struct log_thread_args *const args){
 	char **restrict lineBuffer = NULL;
 	//Use number of characters in longest line of the log file as the size of the line buffer
 	size_t lineBufferSize = args->max_log_line;
 	FILE *consumerLog;
 
 	if(lineBufferSize > 0){
-		lineBuffer = calloc(lineBufferSize, sizeof(**lineBuffer));
+		lineBuffer = calloc(lineBufferSize, sizeof **lineBuffer);
 		if(lineBuffer == NULL){
 			args->ret = 1;
 			//Lock mutex before printing error messages to stdout to ensure that it isn't printed while the producer log is being written to stdout

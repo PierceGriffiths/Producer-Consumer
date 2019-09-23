@@ -11,13 +11,7 @@ struct pc_thread_args{
 	int max_p_log_line, max_c_log_line;
 };
 
-struct producerlog_thread_args{
-	pthread_mutex_t *restrict mutex;
-	int max_log_line;
-	unsigned char ret;
-};
-
-struct consumerlog_thread_args{
+struct log_thread_args{
 	pthread_mutex_t *restrict mutex;
 	int max_log_line;
 	unsigned char ret;

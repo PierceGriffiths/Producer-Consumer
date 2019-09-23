@@ -1,4 +1,9 @@
 #define _GNU_SOURCE
+
+#include "queue.h"
+#include "argstruct.h"
+#include "macrodefs.h"
+
 #ifdef __linux__
 #include <unistd.h>
 #include <sys/types.h>
@@ -10,18 +15,15 @@
 #include <pthread.h>
 #include <errno.h>
 #include <string.h>
-#include "queue.h"
-#include "argstruct.h"
-#include "macrodefs.h"
 
 //Global variables declared in main.c
 extern struct Queue * buffer;
 
 void* consumer(struct pc_thread_args *const args){
 #ifdef __linux__
-	const register pid_t thread_id = syscall(SYS_gettid);//get thread ID 
+	register const pid_t thread_id = syscall(SYS_gettid);//get thread ID 
 #else
-	const register unsigned long long thread_id = (unsigned long long)pthread_self();
+	register const unsigned long long thread_id = (unsigned long long)pthread_self();
 #endif
 	int charswritten;
 	long num;
