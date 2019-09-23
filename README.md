@@ -6,13 +6,6 @@ This program creates "w" producer threads, "x" consumer threads, a shared buffer
 
 A C++ version, [Producer-Consumer++](https://github.com/PierceGriffiths/Producer-Consumer-Plus-Plus), also exists.
 
-### How to compile
-`cmake . && make` will compile a release build
-`cmake -DCMAKE_BUILD_TYPE=Debug . && make` will compile a debug build
-
-### How to run
-`./producer-consumer <# producer threads> <# consumer threads> <buffer capacity> <# items to be produced>`
-
 ### Understanding the log files (consumer-event.log and producer-event.log)
 `<Nanoseconds since the epoch> <Thread type ("Producer" or "Consumer")> <Thread ID> <Buffer entry index> <Item>`
-To save the log files under a different name/in another directory, modify the definitions of `PRODUCER_LOG_FILENAME` and `CONSUMER_LOG_FILENAME` in srch/include/macrodefs.h
+To save the log files under a different name and/or in a different directory, modify the definitions of `PRODUCER_LOG_FILENAME` and `CONSUMER_LOG_FILENAME` in `src/include/macrodefs.h`
