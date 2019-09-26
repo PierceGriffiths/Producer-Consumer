@@ -12,18 +12,18 @@
 
 #include <stdio.h>
 #include <time.h>
-#include <pthread.h>
+#include <threads.h>
 #include <errno.h>
 #include <string.h>
 
 //Global variables declared in main.c
 extern struct Queue * buffer;
 
-void* consumer(struct pc_thread_args *const args){
+int consumer(struct pc_thread_args *const args){
 #ifdef __linux__
 	register const pid_t thread_id = syscall(SYS_gettid);//get thread ID 
 #else
-	register const unsigned long long thread_id = (unsigned long long)pthread_self();
+	register const uintmax_t thread_id = (uintmax_t)pthread_self();
 #endif
 	int charswritten;
 	long num;
@@ -31,14 +31,14 @@ void* consumer(struct pc_thread_args *const args){
 	printf("Consumer thread %"ID_FORMAT" started.\n", thread_id);
 	while(args->num_consumed < args->target){
 		nanosleep(NANOSLEEP_TIME, NULL);//sleep for 1 nanosecond so that other consumers can acquire the mutex
-		pthread_mutex_lock(args->mutex);//Lock buffer
+		mtx_lock(args->mutex);
 		while(isEmpty(buffer) && args->num_consumed < args->target){
-			pthread_cond_wait(args->canConsume, args->mutex);
+			cnd_wait(args->canConsume, args->mutex);
 		}
 		if(args->num_consumed == args->target){
 			printf("Consumer thread %"ID_FORMAT" finished.\n", thread_id);
-			pthread_mutex_unlock(args->mutex);
-			pthread_exit(NULL);
+			mtx_unlock(args->mutex);
+			return thrd_success;
 		}
 		size_t index = dequeue(buffer, &num);
 		timespec_get(&ts, TIME_UTC);
@@ -62,11 +62,11 @@ void* consumer(struct pc_thread_args *const args){
 
 		++args->num_consumed;//Increment num_consumed by 1
 
-		pthread_mutex_unlock(args->mutex);//Unlock buffer
-		pthread_cond_broadcast(args->canProduce);//Signal to waiting producers
+		mtx_unlock(args->mutex);//Unlock buffer
+		cnd_broadcast(args->canProduce);//Signal to waiting producers
 	}
-	pthread_mutex_lock(args->mutex);
+	mtx_lock(args->mutex);
 	printf("Consumer thread %"ID_FORMAT" finished.\n", thread_id);
-	pthread_mutex_unlock(args->mutex);
-	pthread_exit(NULL);//End of thread
+	mtx_unlock(args->mutex);
+	return thrd_success;
 }

@@ -12,35 +12,35 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <threads.h>
 #include <time.h>
-#include <pthread.h>
 #include <errno.h>
 #include <string.h>
 
 //Global variables declared in main.c
 extern struct Queue * buffer;
 
-void* producer(struct pc_thread_args *const args){
-#ifdef __linux__
-	register const pid_t thread_id = syscall(SYS_gettid);//get thread ID
-#else
-	register const unsigned long long thread_id = (unsigned long long)pthread_self();
-#endif
+int producer(struct pc_thread_args *const args){
 	int charswritten;
 	size_t index;
 	struct timespec ts;
+#ifdef __linux__
+	register const pid_t thread_id = syscall(SYS_gettid);//get thread ID 
+#else
+	register const uintmax_t thread_id = (uintmax_t)thrd_current();
+#endif
 	printf("Producer thread %"ID_FORMAT" started.\n", thread_id);
 	while(args->num_produced < args->target){
 		nanosleep(NANOSLEEP_TIME, NULL);//sleep for one nanosecond so that other producers can acquire the mutex
-		pthread_mutex_lock(args->mutex);//Lock buffer
+		mtx_lock(args->mutex);//Lock buffer
 		long num = lrand48();//Get random number
 		while(isFull(buffer)){//If buffer is full, unlock until something is consumed
-			pthread_cond_wait(args->canProduce, args->mutex);
+			cnd_wait(args->canProduce, args->mutex);
 		}
 		if(args->num_produced == args->target){
 			printf("Producer thread %"ID_FORMAT" finished.\n", thread_id);
-			pthread_mutex_unlock(args->mutex);
-			pthread_exit(NULL);//Eliminates branch instruction at assembly level
+			mtx_unlock(args->mutex);
+			return 0;
 		}
 		if(args->producerLog != NULL){
 			index = enqueue(buffer, num);//Place num at end of the buffer and get its index
@@ -68,11 +68,11 @@ void* producer(struct pc_thread_args *const args){
 
 		++args->num_produced;
 
-		pthread_mutex_unlock(args->mutex);//Unlock buffer
-		pthread_cond_broadcast(args->canConsume);//Signal to waiting consumers
+		mtx_unlock(args->mutex);//Unlock buffer
+		cnd_broadcast(args->canConsume);//Signal to waiting consumers
 	}
-	pthread_mutex_lock(args->mutex);
+	mtx_lock(args->mutex);
 	printf("Producer thread %"ID_FORMAT" finished.\n", thread_id);
-	pthread_mutex_unlock(args->mutex);
-	pthread_exit(NULL);//End of thread
+	mtx_unlock(args->mutex);
+	return thrd_success;
 }

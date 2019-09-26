@@ -3,9 +3,9 @@
 
 struct Queue* createQueue(const size_t capacity){
 	struct Queue *q = malloc(sizeof *q);
-	if(q != NULL){
+	if(q){
 		q->array = calloc(capacity, sizeof *q->array);//Only need to allocate memory on queue creation, whereas using a linked list would require allocation on every enqueue
-		if(q->array == NULL){
+		if(!q->array){
 			free(q);
 			return NULL;
 		}

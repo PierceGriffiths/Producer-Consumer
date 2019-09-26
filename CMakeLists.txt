@@ -13,6 +13,7 @@ ENDIF(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_C_EXTENSIONS OFF)
 
 IF("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 	add_compile_options("-march=native" "-Wall" "-Wextra" "-pedantic")
@@ -28,9 +29,10 @@ ENDIF("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
 add_executable(producer-consumer
 	src/main.c src/queue.c src/producer.c src/consumer.c src/logreader_threads.c)
+set(CMAKE_THREAD_PREFER_PTHREAD ON)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 target_link_libraries(producer-consumer "${CMAKE_THREAD_LIBS_INIT}")
-include_directories(PUBLIC "${CMAKE_SOURCE_DIR}/src/include/")
+target_include_directories(producer-consumer PUBLIC "${CMAKE_SOURCE_DIR}/src/include/")
 
 install(TARGETS producer-consumer DESTINATION ${CMAKE_SOURCE_DIR})
