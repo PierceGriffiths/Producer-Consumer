@@ -33,7 +33,7 @@ set_target_properties(
 		C_EXTENSIONS ON
 		LINKER_LANGUAGE C
 		INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/src/include"
-		LINK_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}"
+		LINK_LIBRARIES Threads::Threads
 )
 
-install(TARGETS producer-consumer DESTINATION ${CMAKE_SOURCE_DIR})
+install(TARGETS producer-consumer DESTINATION ${CMAKE_INSTALL_PREFIX})
