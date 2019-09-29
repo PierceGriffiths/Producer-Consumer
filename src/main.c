@@ -10,26 +10,24 @@
 #include <inttypes.h>
 #include <errno.h>
 
-#ifdef SUPPORTS_RLIM
-#include <sys/resource.h>
-#endif
+struct Queue *buffer;
 
-struct Queue * buffer;
-
-struct pc_thread_args* checkArguments(const char *restrict argv[], size_t *numProducers, size_t *numConsumers);
-unsigned char forkAndJoin(const size_t numProducers, const size_t numConsumers, struct pc_thread_args *const tArgs);
-unsigned char readLogFiles(const int max_p_log_line, const int max_c_log_line);
+int checkArguments(struct pc_thread_args *const tArgs, const char *restrict argv[], size_t *const numProducers, size_t *const numConsumers);
+int forkAndJoin(const size_t numProducers, const size_t numConsumers, struct pc_thread_args *const tArgs);
+int readLogFiles(const int max_p_log_line, const int max_c_log_line);
 
 int main(int argc, const char *argv[]){
-	size_t numProducers = 0, numConsumers = 0;
-
 	if(argc != 5){//check for correct number of arguments
 		printf("Usage: %s <# producer threads> <# consumer threads> <buffer capacity> <# items to produce>\n", argv[0]);
 		return 1;
 	}
-
-	struct pc_thread_args *tArgs = checkArguments(argv, &numProducers, &numConsumers);
-	if(!tArgs)
+	struct pc_thread_args *tArgs = malloc(sizeof *tArgs);
+	if(!tArgs){
+		fprintf(stderr, "Failed to allocate memory for thread arguments.\n");
+		return 1;
+	}
+	size_t numProducers, numConsumers;
+	if(checkArguments(tArgs, argv, &numProducers, &numConsumers))
 		return 1;
 
 	tArgs->producerLog = fopen(PRODUCER_LOG_FILENAME, "w");
@@ -42,29 +40,22 @@ int main(int argc, const char *argv[]){
 
 	if(forkAndJoin(numProducers, numConsumers, tArgs))
 		return 1;
+	deleteQueue(buffer);
 	int max_p_log_line = tArgs->max_p_log_line;
 	int max_c_log_line = tArgs->max_c_log_line;
-	free(tArgs);
 	return readLogFiles(max_p_log_line, max_c_log_line);
 }//main
 
-
-struct pc_thread_args* checkArguments(const char *restrict argv[], size_t *numProducers, size_t *numConsumers){
-	struct pc_thread_args *tArgs = NULL;
-	size_t argCheck;
-	unsigned char i;
-
-	for(i = 1; i < 5; ++i){//Ensure all provided arguments are valid
-		if(argv[i][0] == '-')
-			goto invalidarg;
+#pragma GCC optimize ("Os")
+int checkArguments(struct pc_thread_args *const tArgs, const char *restrict argv[], size_t *const numProducers, size_t *const numConsumers){
+	for(int i = 1; i < 5; ++i){//Ensure all provided arguments are valid
+		uintmax_t argCheck;
 		errno = 0;
-		argCheck = strtoumax(argv[i], NULL, 10);
-		if(errno == ERANGE || argCheck == 0){
-invalidarg:
-			fprintf(stderr, "Argument %u (\'%s\') not valid. Please provide a positive integer no greater than %zu.\n",
+		if(argv[i][0] == '-' || !(argCheck  = strtoumax(argv[i], NULL, 10)) || argCheck > SIZE_MAX || errno == ERANGE){
+			fprintf(stderr, "Argument %d (\'%s\') not valid. Please provide a positive integer no greater than %zu.\n",
 					i, argv[i], SIZE_MAX);
 			printf("Usage: %s <# producer threads> <# consumer threads> <buffer capacity> <# items to produce>\n", argv[0]);
-			return NULL;
+			return 1;
 		}
 		switch(i){
 			case 1:
@@ -77,37 +68,17 @@ invalidarg:
 				buffer = createQueue(argCheck);
 				if(!buffer){
 					fprintf(stderr, "Failed to allocate memory for buffer.\n");
-					return NULL;
+					return 1;
 				}
 				continue;
 			case 4:
-				tArgs = malloc(sizeof *tArgs);
-				if(tArgs){
-					tArgs->target = argCheck;
-				}
-				else{
-					fprintf(stderr, "Failed to allocate memory for thread arguments.\n");
-					return NULL;
-				}
+				tArgs->target = argCheck;
 		}
 	}
-#ifdef SUPPORTS_RLIM
-	struct rlimit rlim;
-	prlimit(0, RLIMIT_NPROC, NULL, &rlim);//Stores the soft and hard limits for the number of threads that the invoking user is permitted to have running
-	if(*numProducers + *numConsumers >= rlim.rlim_cur){
-		fprintf(stderr, "The number of threads you wish to create exceeds the hard limit for the number of threads that can be created by the current user.\n");
-		deleteQueue(buffer);
-		free(tArgs);
-		return NULL;
-	}
-#endif
-	tArgs->num_produced = 0;
-	tArgs->num_consumed = 0;
-	return tArgs;
+	return 0;
 }//checkArguments
 
-unsigned char forkAndJoin(const size_t numProducers, const size_t numConsumers, struct pc_thread_args *const tArgs){
-
+int forkAndJoin(const size_t numProducers, const size_t numConsumers, struct pc_thread_args *const tArgs){
 	mtx_t *mutex = malloc(sizeof *mutex);
 	if(!mutex || mtx_init(mutex, mtx_plain) != thrd_success){
 		free(mutex);
@@ -128,93 +99,38 @@ unsigned char forkAndJoin(const size_t numProducers, const size_t numConsumers, 
 	tArgs->canConsume = canConsume;
 	tArgs->canProduce = canProduce;
 
-	thrd_t *const producers = calloc(numProducers, sizeof *producers);//See producer.c for the implementation of the producer function
-	if(!producers){
+	thrd_t *const threads = calloc(numProducers + numConsumers, sizeof *threads);
+	if(!threads){
 		free(mutex);
 		free(canProduce);
 		free(canConsume);
-		fprintf(stderr, "Failed to allocate memory for producer threads.\n");
+		fprintf(stderr, "Failed to allocate memory for threads.\n");
 		return 1;
 	}
 
-	thrd_t *const consumers = calloc(numConsumers, sizeof *consumers);//See consumer.c for the implementation of the consumer function
-	if(!consumers){
-		free(mutex);
-		free(canProduce);
-		free(canConsume);
-		free(producers);
-		fprintf(stderr, "Failed to allocate memory for consumer threads.\n");
-		return 1;
-	}
 
 	srand48((long)time(NULL));
-	tArgs->max_p_log_line = 0;
-	tArgs->max_c_log_line = 0;
-	if(numProducers >= numConsumers){
-		size_t i;
-		for(i = 0; i < numConsumers; ++i){
-			if(thrd_create(&producers[i], producer, tArgs) != thrd_success){
-				mtx_lock(mutex);
-				fprintf(stderr, "Unable to create the requested number of producer threads.\n");
-				return 1;
-			}
-
-			if(thrd_create(&consumers[i], consumer, tArgs) != thrd_success){
-				mtx_lock(mutex);
-				fprintf(stderr, "Unable to create the requested number of consumer threads.\n");
-				return 1;
-			}
+	size_t i;
+	for(i = 0; i < numConsumers; ++i){
+		if(thrd_create(&threads[i], consumer, tArgs) != thrd_success){
+			mtx_lock(mutex);
+			fprintf(stderr, "Unable to create the requested number of consumer threads.\n");
+			return 1;
 		}
-
-		for(; i < numProducers; ++i){
-			if(thrd_create(&producers[i], producer, tArgs) != thrd_success){
-				mtx_lock(mutex);
-				fprintf(stderr, "Unable to create the requested number of producer threads.\n");
-				return 1;
-			}
-		}
-
-		for(i = 0; i < numConsumers; ++i){
-			thrd_join(producers[i], NULL);
-			thrd_join(consumers[i], NULL);
-		}
-
-		for(; i < numProducers; ++i)
-			thrd_join(producers[i], NULL);
-
 	}
-	else{
-		size_t i;
-		for(i = 0; i < numProducers; ++i){
-			if(thrd_create(&producers[i], producer, tArgs) != thrd_success){
-				mtx_lock(mutex);
-				fprintf(stderr, "Unable to create the requested number of producer threads.\n");
-				return 1;
-			}
 
-			if(thrd_create(&consumers[i], consumer, tArgs) != thrd_success){
-				mtx_lock(mutex);
-				fprintf(stderr, "Unable to create the requested number of consumer threads.\n");
-				return 1;
-			}
+	for(; i < numProducers + numConsumers; ++i){
+		if(thrd_create(&threads[i], producer, tArgs) != thrd_success){
+			mtx_lock(mutex);
+			fprintf(stderr, "Unable to create the requested number of producer threads.\n");
+			return 1;
 		}
+	}
 
-		for(; i < numConsumers; ++i){
-			if(thrd_create(&consumers[i], consumer, tArgs) != thrd_success){
-				mtx_lock(mutex);
-				fprintf(stderr, "Unable to create the requested number of consumer threads.\n");
-				return 1;
-			}
-		}
+	for(i = 0; i < numProducers + numConsumers; ++i)
+		thrd_join(threads[i], NULL);
 
-		for(i = 0; i < numProducers; ++i){
-			thrd_join(producers[i], NULL);
-			thrd_join(consumers[i], NULL);
-		}
-
-		for(; i < numConsumers; ++i)
-			thrd_join(consumers[i], NULL);
-	}//end of else
+	free(threads);
 
 	if(tArgs->producerLog != NULL)
 		fclose(tArgs->producerLog);
@@ -224,12 +140,9 @@ unsigned char forkAndJoin(const size_t numProducers, const size_t numConsumers, 
 	cnd_destroy(canProduce);
 	cnd_destroy(canConsume);
 	
-	deleteQueue(buffer);
 	free(mutex);
 	free(canProduce);
 	free(canConsume);
-	free(producers);
-	free(consumers);
 
 	tArgs->mutex = NULL;
 	tArgs->canConsume = NULL;
@@ -240,7 +153,7 @@ unsigned char forkAndJoin(const size_t numProducers, const size_t numConsumers, 
 	return 0;
 }//forkAndJoin
 
-unsigned char readLogFiles(const int max_p_log_line, const int max_c_log_line){
+int readLogFiles(const int max_p_log_line, const int max_c_log_line){
 	struct log_thread_args *producerlog_args, *consumerlog_args;
 	thrd_t producerlog_thread, consumerlog_thread;
 	int pro_log_ret, con_log_ret;

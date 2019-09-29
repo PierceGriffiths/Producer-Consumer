@@ -25,5 +25,6 @@
 #define CONSUMER_LOG_FILENAME "consumer-event.log"
 
 #define NANOSLEEP_TIME (const struct timespec[]){{0, 1}}
+#define ERR_BUFF_LEN 256
 
 #endif//#ifndef MACRODEFS_H

@@ -17,7 +17,7 @@
 #include <string.h>
 
 //Global variables declared in main.c
-extern struct Queue * buffer;
+extern struct Queue *buffer;
 
 int consumer(struct pc_thread_args *const args){
 #ifdef __linux__
@@ -26,8 +26,6 @@ int consumer(struct pc_thread_args *const args){
 	register const uintmax_t thread_id = (uintmax_t)pthread_self();
 #endif
 	int charswritten;
-	long num;
-	struct timespec ts;
 	printf("Consumer thread %"ID_FORMAT" started.\n", thread_id);
 	while(args->num_consumed < args->target){
 		nanosleep(NANOSLEEP_TIME, NULL);//sleep for 1 nanosecond so that other consumers can acquire the mutex
@@ -38,16 +36,20 @@ int consumer(struct pc_thread_args *const args){
 		if(args->num_consumed == args->target){
 			printf("Consumer thread %"ID_FORMAT" finished.\n", thread_id);
 			mtx_unlock(args->mutex);
-			return thrd_success;
+			return 0;
 		}
-		size_t index = dequeue(buffer, &num);
-		timespec_get(&ts, TIME_UTC);
+		unsigned short index;
+		long num = dequeue(buffer, &index);
 		if(args->consumerLog != NULL){
-			charswritten = fprintf(args->consumerLog, "%lld%09ld Consumer %"ID_FORMAT" %zu %ld\n", (long long)ts.tv_sec, ts.tv_nsec, thread_id, index, num);
-			if(charswritten < 0){ 
+			struct timespec ts;
+			timespec_get(&ts, TIME_UTC);
+			charswritten = fprintf(args->consumerLog, "%lld%09ld Consumer %"ID_FORMAT" %hu %ld\n", (long long)ts.tv_sec, ts.tv_nsec, thread_id, index, num);
+			if(charswritten < 0){
 				int errnoCopy = errno;
 				fprintf(stderr, "Consumer thread %"ID_FORMAT" encountered an error while writing to "CONSUMER_LOG_FILENAME". Write operation failed.\n", thread_id);
-				fprintf(stderr, "Error description: %s", strerror(errnoCopy));
+				char err_buff[ERR_BUFF_LEN];
+				strerror_r(errnoCopy, err_buff, ERR_BUFF_LEN);
+				fprintf(stderr, "Error description: %s\n", err_buff);
 				if(errnoCopy != EOVERFLOW || errnoCopy != EAGAIN || errnoCopy != EINTR){
 					fprintf(stderr, "Due to the nature of the error, consumer threads will no longer write to "CONSUMER_LOG_FILENAME" for the remainder of runtime.\n");
 					fclose(args->consumerLog);
@@ -58,7 +60,7 @@ int consumer(struct pc_thread_args *const args){
 				args->max_c_log_line = charswritten;
 			}
 		}
-		printf("Consumer thread %"ID_FORMAT" consumed %ld from index %zu\n", thread_id, num, index);
+		printf("Consumer thread %"ID_FORMAT" consumed %ld from index %hu\n", thread_id, num, index);
 
 		++args->num_consumed;//Increment num_consumed by 1
 
@@ -68,5 +70,5 @@ int consumer(struct pc_thread_args *const args){
 	mtx_lock(args->mutex);
 	printf("Consumer thread %"ID_FORMAT" finished.\n", thread_id);
 	mtx_unlock(args->mutex);
-	return thrd_success;
+	return 0;
 }

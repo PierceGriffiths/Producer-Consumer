@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <threads.h>
-
+#pragma GCC optimize ("Os")
 int producer_log_reader(struct log_thread_args *const args){
 	char **restrict lineBuffer = NULL;
 	//Use number of characters in longest line of the log file as the size of the line buffer

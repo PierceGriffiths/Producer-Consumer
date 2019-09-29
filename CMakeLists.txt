@@ -11,10 +11,6 @@ IF(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 	set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS "Debug" "Release")
 ENDIF(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-set(CMAKE_C_EXTENSIONS OFF)
-
 IF("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 	add_compile_options("-march=native" "-Wall" "-Wextra" "-pedantic")
 	set(CMAKE_C_FLAGS_RELEASE "-O3")
@@ -27,12 +23,17 @@ ELSE()
 	message(WARNING "You are using a compiler which might not be compatible with this project!")
 ENDIF("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
 
-add_executable(producer-consumer
-	src/main.c src/queue.c src/producer.c src/consumer.c src/logreader_threads.c)
-set(CMAKE_THREAD_PREFER_PTHREAD ON)
-set(THREADS_PREFER_PTHREAD_FLAG ON)
+add_executable(producer-consumer src/main.c src/queue.c src/producer.c src/consumer.c src/logreader_threads.c)
 find_package(Threads REQUIRED)
-target_link_libraries(producer-consumer "${CMAKE_THREAD_LIBS_INIT}")
-target_include_directories(producer-consumer PUBLIC "${CMAKE_SOURCE_DIR}/src/include/")
+set_target_properties(
+	producer-consumer
+	PROPERTIES
+		C_STANDARD 11
+		C_STANDARD_REQUIRED ON
+		C_EXTENSIONS ON
+		LINKER_LANGUAGE C
+		INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/src/include"
+		LINK_LIBRARIES "${CMAKE_THREAD_LIBS_INIT}"
+)
 
 install(TARGETS producer-consumer DESTINATION ${CMAKE_SOURCE_DIR})
