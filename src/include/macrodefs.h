@@ -1,30 +1,22 @@
 #ifndef MACRODEFS_H
 #define MACRODEFS_H
 
-#if defined(__linux__)
-#define SUPPORTS_RLIM
+#ifdef __linux__
 #define ID_FORMAT "d"
-#elif defined(__unix__)
-#include <sys/param.h>
-#ifdef BSD
-#define SUPPORTS_RLIM
-#endif //#ifdef BSD
-#elif defined(__APPLE__) && defined(__MACH__)
-#include <TargetConditionals.h>
-#if TARGET_OS_MAC == 1
-#define SUPPORTS_RLIM
-#endif //if TARGET_OS_MAC == 1
-#endif //if defined(__linux__)
-
-#ifndef __linux__
+#else
 #include <inttypes.h>
 #define ID_FORMAT PRIuMAX
-#endif//#ifndef __linux__
+#endif
+
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#else
+#define NANOSLEEP_TIME (const struct timespec[]){{0, 1}}
+#endif
 
 #define PRODUCER_LOG_FILENAME "producer-event.log"
 #define CONSUMER_LOG_FILENAME "consumer-event.log"
 
-#define NANOSLEEP_TIME (const struct timespec[]){{0, 1}}
 #define ERR_BUFF_LEN 256
 
 #endif//#ifndef MACRODEFS_H

@@ -1,25 +1,22 @@
 #ifndef QUEUE_H
 #define QUEUE_H
-#include <stddef.h>
+#include <inttypes.h>
 struct Queue{
-	long *const restrict array;
-	const unsigned short capacity;
-	unsigned short size, front, back;
+	int *restrict array;
+	uint_fast16_t capacity, size, front, back;
 };
 
-struct Queue* createQueue(const unsigned short capacity);
+struct Queue* createQueue(const uint_fast16_t capacity);
 
-void deleteQueue(struct Queue *restrict q);
+uint_fast16_t enqueue(struct Queue *const q, const int num);
 
-unsigned short enqueue(struct Queue *const restrict q, const long num);
+int dequeue(struct Queue *const restrict q, uint_fast16_t *const restrict index);
 
-long dequeue(struct Queue *const restrict q, unsigned short *const index);
-
-__attribute__((always_inline)) inline int isEmpty(const struct Queue *restrict q){
+__attribute__((always_inline)) inline int isEmpty(const struct Queue *q){
 	return !q->size;
 }
 
-__attribute__((always_inline)) inline int isFull(const struct Queue *restrict q){
+__attribute__((always_inline)) inline int isFull(const struct Queue *q){
 	return q->size == q->capacity;
 }
 #endif

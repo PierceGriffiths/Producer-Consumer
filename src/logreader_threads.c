@@ -5,11 +5,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <threads.h>
-#pragma GCC optimize ("Os")
-int producer_log_reader(struct log_thread_args *const args){
+int producer_log_reader(struct thread_args *const args){
 	char **restrict lineBuffer = NULL;
 	//Use number of characters in longest line of the log file as the size of the line buffer
-	size_t lineBufferSize = args->max_log_line;
+	size_t lineBufferSize = args->max_p_log_line;
 	FILE *producerLog;
 	if(lineBufferSize > 0){
 		lineBuffer = calloc(lineBufferSize, sizeof **lineBuffer);
@@ -59,10 +58,10 @@ int producer_log_reader(struct log_thread_args *const args){
 	return 0;
 }
 
-int consumer_log_reader(struct log_thread_args *const args){
+int consumer_log_reader(struct thread_args *const args){
 	char **restrict lineBuffer = NULL;
 	//Use number of characters in longest line of the log file as the size of the line buffer
-	size_t lineBufferSize = args->max_log_line;
+	size_t lineBufferSize = args->max_c_log_line;
 	FILE *consumerLog;
 
 	if(lineBufferSize > 0){
